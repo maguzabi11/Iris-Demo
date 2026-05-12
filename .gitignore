@@ -1,0 +1,52 @@
+# Local tooling/cache
+.firecrawl/
+.codex/
+
+# Unreal Engine generated folders
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Unreal Engine user/local files
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.xcodeproj
+*.xcworkspace
+*.code-workspace
+*.uprojectdirs
+*.user
+*.userprefs
+
+# Unreal Engine build artifacts
+*.target
+*.modules
+*.version
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.dll
+*.exe
+*.app
+*.dSYM/
+
+# Logs and profiling output
+*.log
+*.utrace
+*.ucsv
+*.csv
+Profiling/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/
+.idea/
