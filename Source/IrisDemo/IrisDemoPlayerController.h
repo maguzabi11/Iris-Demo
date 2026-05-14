@@ -43,10 +43,14 @@ protected:
 	/** Gameplay initialization */
 	virtual void BeginPlay() override;
 
+	virtual void OnRep_PlayerState() override;
+
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
+
+	void LogRelayRole() const;
 
 };

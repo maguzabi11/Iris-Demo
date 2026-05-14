@@ -16,12 +16,12 @@
 - [x] `Source/IrisDemo.Target.cs`, `Source/IrisDemoEditor.Target.cs`에 존재하지 않는 `bUseIris` 설정 없음
 - [x] `Config/DefaultEngine.ini`에 `net.Iris.UseIrisReplication=1` 설정
 - [x] `Config/DefaultEngine.ini`에 registered subobject list/push model 관련 기본 설정 추가
-- [ ] Scenario A 전용 C++ class 골격 작성
-- [ ] 역할 선택/할당 flow 작성
+- [x] Scenario A 전용 C++ class 골격 작성
+- [x] 역할 선택/할당 flow 작성
 - [ ] 역할별 replicated actor visibility 차이 구현
 - [ ] Generic/Iris 비교 실행 절차 작성
 - [ ] 측정 UI 또는 로그 요약 구현
-- [ ] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 확인
+- [x] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 확인
 
 ## 2. 시나리오 목표
 
@@ -85,12 +85,19 @@ FilteringPolicy(Role, ActorMetadata) -> allow / deny
 
 역할은 `PlayerState`에 replicated property로 둔다.
 
-예상 class:
+초기 설계상 후보:
 
 - `ERelayOperatorRole`
 - `ARelayPlayerState`
-- `ARelayGameMode`
-- `ARelayPlayerController`
+- `AIrisDemoGameMode`
+- `AIrisDemoPlayerController`
+
+현재 구현 class:
+
+- `ERelayOperatorRole`: Scenario A 플레이어 역할 enum
+- `ARelayPlayerState`: replicated `OperatorRole` 보관
+- `AIrisDemoGameMode`: `PostLogin`에서 접속 순서 기반 role 자동 할당
+- `AIrisDemoPlayerController`: local controller의 role 확인 로그 출력
 
 역할 할당 방식은 초기에는 간단하게 시작한다.
 
@@ -176,16 +183,22 @@ actor별 replicated 속성:
 
 ### A1. 역할 골격
 
-- [ ] `ERelayOperatorRole` 정의
-- [ ] 역할을 저장할 `PlayerState` 또는 기존 PlayerState 확장 방향 결정
-- [ ] 서버 권위 역할 할당 함수 작성
-- [ ] 클라이언트에서 현재 역할 확인 가능
-- [ ] 역할 변경 시 로그 출력
+- [x] `ERelayOperatorRole` 정의
+- [x] 역할을 저장할 `PlayerState` 또는 기존 PlayerState 확장 방향 결정
+- [x] 서버 권위 역할 할당 함수 작성
+- [x] 클라이언트에서 현재 역할 확인 가능
+- [x] 역할 변경 시 로그 출력
 - [ ] 2 client 이상 PIE에서 역할이 다르게 보이는지 확인
 
 완료 기준:
 
 - Commander/FieldAgent/Spectator 세 역할을 서버가 구분하고, 각 클라이언트가 자기 역할을 표시할 수 있다.
+
+검증 메모:
+
+- 2026-05-15: `ARelayPlayerState`와 접속 순서 기반 `PostLogin` 역할 할당 구현
+- 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공
+- 남은 확인: 2 client 이상 PIE에서 실제 클라이언트별 role 로그 확인
 
 ### A2. Scenario A 테스트 actor
 
@@ -244,7 +257,7 @@ actor별 replicated 속성:
 
 ### A6. 검증
 
-- [ ] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공
+- [x] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공
 - [ ] listen server + 2 clients PIE 검증
 - [ ] dedicated server + 2 clients 실행 검증
 - [ ] Generic/Iris 양쪽에서 실행 성공

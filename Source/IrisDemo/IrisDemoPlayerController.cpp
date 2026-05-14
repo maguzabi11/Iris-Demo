@@ -7,6 +7,7 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "IrisDemo.h"
+#include "ScenarioA/RelayPlayerState.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 
 void AIrisDemoPlayerController::BeginPlay()
@@ -31,6 +32,15 @@ void AIrisDemoPlayerController::BeginPlay()
 		}
 
 	}
+
+	LogRelayRole();
+}
+
+void AIrisDemoPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	LogRelayRole();
 }
 
 void AIrisDemoPlayerController::SetupInputComponent()
@@ -64,4 +74,23 @@ bool AIrisDemoPlayerController::ShouldUseTouchControls() const
 {
 	// are we on a mobile platform? Should we force touch?
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
+}
+
+void AIrisDemoPlayerController::LogRelayRole() const
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	const ARelayPlayerState* RelayPlayerState = GetPlayerState<ARelayPlayerState>();
+	if (!RelayPlayerState)
+	{
+		UE_LOG(LogIrisDemo, Log, TEXT("Local relay role pending: Controller=%s"), *GetName());
+		return;
+	}
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Local relay role ready: Controller=%s Role=%s"),
+		*GetName(),
+		*RelayPlayerState->GetOperatorRoleName());
 }
