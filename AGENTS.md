@@ -1,0 +1,31 @@
+# IrisDemo 작업 규칙
+
+## 프로젝트 기준
+
+- 엔진 기준은 UE 5.7.1이다.
+- 프로젝트명과 모듈명은 `IrisDemo`로 유지한다. `IrisDemo_UE` 이름을 다시 도입하지 않는다.
+- 데모 방향은 `Docs/planning.md`의 `Iris Relay Lab` 기획을 기준으로 한다.
+
+## Iris 설정
+
+- Iris 활성화는 `.uproject`, `IrisDemo.Build.cs`, `DefaultEngine.ini`, 실행 인자로 관리한다.
+- UE 5.7.1 기준 `TargetRules.bUseIris`는 존재하지 않는다. Target.cs에 `bUseIris = true;`를 추가하지 않는다.
+- `Source/IrisDemo/IrisDemo.Build.cs`의 `SetupIrisSupport(Target)`를 유지한다.
+- 모듈 export macro는 `IRISDEMO_API`를 사용한다.
+
+## Git/파일 관리
+
+- `Docs/`, `Config/`, `Content/`, `Source/`, `IrisDemo.uproject`는 추적 대상이다.
+- `Binaries/`, `Intermediate/`, `Saved/`, `.firecrawl/`는 커밋하지 않는다.
+- UE 에디터가 만든 대량 변경은 작업 목적과 관련 있는지 확인한 뒤 커밋한다.
+
+## 개발 순서
+
+- 큰 기능을 한 번에 넣지 말고, 빌드 가능한 작은 단위로 구현하고 커밋한다.
+- 변경 후 가능하면 UE 5.7.1로 `IrisDemoEditor Win64 Development` 빌드를 확인한다.
+- 먼저 Scenario A의 role-based filtering 골격을 만들고, 이후 UObject subobject replication과 seamless travel 검증으로 확장한다.
+
+## 문서
+
+- Iris 관련 사실은 실제 UE 5.7.1 빌드 결과와 Epic 공식 문서를 우선한다.
+- 새로 알게 된 제약이나 설정 차이는 `Docs/planning.md` 또는 `Docs/Iris기본지식.md`에 반영한다.
