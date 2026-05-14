@@ -1,5 +1,9 @@
 # IrisDemo 작업 규칙
 
+## 사용자와의 대화
+사용자와 대화 시 태도와 말투는 공손하고 친절하게, 존댓말로 통일.
+문서나 혼자말은 존댓말을 안써도 상관 없다.
+
 ## 프로젝트 기준
 
 - 엔진 기준은 UE 5.7.1이다.
@@ -24,6 +28,8 @@
 - 큰 기능을 한 번에 넣지 말고, 빌드 가능한 작은 단위로 구현하고 커밋한다.
 - 변경 후 가능하면 UE 5.7.1로 `IrisDemoEditor Win64 Development` 빌드를 확인한다.
 - 먼저 Scenario A의 role-based filtering 골격을 만들고, 이후 UObject subobject replication과 seamless travel 검증으로 확장한다.
+- Scenario A에서 Commander/FieldAgent/Spectator 같은 role은 테스트 actor 속성이 아니라 player/connection 속성으로 다룬다.
+- 테스트 actor에는 `ZoneId`, category, owner, summary/detail 구분 같은 metadata를 두고, filtering policy가 player role과 actor metadata를 비교해 복제 여부를 결정한다.
 
 ## 문서
 

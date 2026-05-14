@@ -1,6 +1,8 @@
 # Local tooling/cache
 .firecrawl/
 .codex/
+.idea/
+.vs/
 
 # Unreal Engine generated folders
 Binaries/

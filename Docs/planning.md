@@ -93,6 +93,8 @@
 
 **목적**: Iris Filtering을 포트폴리오 관점에서 직관적으로 보여준다.
 
+상세 구현 계획과 진행 체크리스트는 [ScenarioA_RoleBasedFiltering.md](./ScenarioA_RoleBasedFiltering.md)에서 관리한다.
+
 **흐름**:
 1. 플레이어는 Commander, Field Agent, Spectator 중 하나의 역할로 접속한다.
 2. Commander는 전체 센서 이벤트와 squad summary를 받는다.
