@@ -63,9 +63,7 @@ SetupIrisSupport(Target);
 
 ### `*.Target.cs`
 
-```csharp
-bUseIris = true;
-```
+UE 5.7.1 기준으로 `TargetRules.bUseIris`는 존재하지 않는다. Target.cs에 `bUseIris = true;`를 넣으면 UBT가 실패한다. Target.cs에는 일반 Target 설정만 두고, Iris 활성화는 `.uproject`, `*.Build.cs`, `DefaultEngine.ini`, 실행 인자로 관리한다.
 
 ### `DefaultEngine.ini`
 
@@ -261,7 +259,7 @@ UE 5.7 릴리즈 노트에서 Iris seamless travel support가 명시되었다. �
 
 ## 11. 흔한 함정
 
-- `bUseIris` 또는 `SetupIrisSupport(Target)`를 빠뜨리고 ini만 바꾼다.
+- `SetupIrisSupport(Target)`를 빠뜨리고 ini만 바꾼다.
 - Iris와 Replication Graph를 동시에 쓰는 구조로 설계한다.
 - `UObject`를 생성했지만 `AddReplicatedSubObject`를 호출하지 않는다.
 - subobject outer가 owning actor/component가 아니다.

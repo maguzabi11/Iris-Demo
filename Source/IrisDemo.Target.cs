@@ -10,7 +10,6 @@ public class IrisDemoTarget : TargetRules
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V6;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
-		bUseIris = true;
 		ExtraModuleNames.Add("IrisDemo");
 	}
 }

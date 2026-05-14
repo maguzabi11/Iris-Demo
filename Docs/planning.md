@@ -14,7 +14,7 @@
 |------|-------|-----------------|
 | **기능 상태** | 공식 문서에서 Experimental 안내와 shipping 주의 문구 확인 | 5.7 릴리즈 노트에서 **Iris (Beta)**로 승격 확인 |
 | **기본 복제 시스템** | Iris는 opt-in. 기존 Generic Replication이 기본 | 5.7도 Iris는 opt-in으로 보는 것이 안전함 |
-| **컴파일/빌드 설정** | Iris는 엔진에 기본 컴파일되지만 프로젝트에서 플러그인, `SetupIrisSupport(Target)`, `bUseIris=true` 설정 필요 | 5.7.1에서도 설정을 명시하는 방향 권장. “Target.cs 설정 불필요”라고 단정하지 않음 |
+| **컴파일/빌드 설정** | Iris는 엔진에 기본 컴파일되지만 프로젝트에서 플러그인과 `SetupIrisSupport(Target)` 설정 필요 | 실제 UE 5.7.1 UBT에서 `TargetRules.bUseIris`는 존재하지 않음. Target.cs가 아니라 Build.cs/uproject/ini 중심으로 설정 |
 | **런타임 활성화** | `net.Iris.UseIrisReplication=1` 또는 `-UseIrisReplication=1` | 동일한 방식으로 비교 실행 구성 가능 |
 | **Seamless Travel** | 5.6 문서 기준으로는 5.7 릴리즈 노트의 추가 항목 전 상태 | 5.7 릴리즈 노트에서 Iris seamless travel support 명시 |
 | **Subobject/UObject Replication** | Iris는 Registered Subobjects List 필요 | 5.7 문서 기준으로도 핵심 학습 항목. `RegisterReplicationFragments`까지 이해 필요 |
@@ -25,7 +25,7 @@
 ### 사실 확인 요약
 
 - Epic 5.7 릴리즈 노트: Iris가 **Beta**로 이동했고, Actor Factory Overrides, `UReplicationBridge` 제거, `StartActorReplication`/`OnBeginReplication` 명명 정리, Iris/Legacy 간 `OnBeginReplication` 및 `EndReplication` 호출 일관성 개선, **Seamless Travel Support**, polling 최적화, parallel polling 관련 개선이 확인된다.
-- Epic Iris 소개/설정 문서: Iris는 기존 replication system과 함께 존재하는 opt-in 시스템이다. 엔진은 Iris를 컴파일하지만 기본 복제 시스템은 기존 시스템이며, 프로젝트에서 플러그인 활성화, `SetupIrisSupport(Target)`, `bUseIris=true`, `DefaultEngine.ini` 설정을 명시하는 편이 안전하다.
+- Epic Iris 소개/설정 문서와 실제 UE 5.7.1 빌드 검증: Iris는 기존 replication system과 함께 존재하는 opt-in 시스템이다. 엔진은 Iris를 컴파일하지만 기본 복제 시스템은 기존 시스템이며, 프로젝트에서 플러그인 활성화, `SetupIrisSupport(Target)`, `DefaultEngine.ini` 설정을 명시한다. 현재 설치된 UE 5.7.1에서는 `TargetRules.bUseIris`가 없어 Target.cs에 쓰면 빌드가 실패한다.
 - Epic UObject 복제 문서: Iris는 virtual `ReplicateSubobjects` 방식을 지원하지 않고 Registered Subobjects List를 요구한다. 순수 `UObject`를 Iris로 복제하려면 `IsSupportedForNetworking`, `GetLifetimeReplicatedProps`, `AddReplicatedSubObject`, 필요 시 `RegisterReplicationFragments`를 이해해야 한다.
 - Epic migration 문서: Replication Graph와 Iris는 동시에 쓰는 관계가 아니며, Iris Filtering/Prioritization이 Replication Graph의 역할을 대체하는 방향이다. 따라서 “Replication Graph Deprecated”라고만 적기보다 “Iris와 동시 사용 불가, 대체 개념은 Filtering/Prioritization”으로 설명한다.
 
@@ -244,15 +244,7 @@ public IrisDemo(ReadOnlyTargetRules Target) : base(Target)
 
 ### `.Target.cs`
 
-```csharp
-public IrisDemoTarget(TargetInfo Target) : base(Target)
-{
-    Type = TargetType.Game;
-    DefaultBuildSettings = BuildSettingsVersion.Latest;
-
-    bUseIris = true;
-}
-```
+UE 5.7.1 기준으로 `TargetRules.bUseIris`는 존재하지 않는다. Target.cs에는 일반 Target 설정만 두고, Iris 활성화는 `.uproject`, `Build.cs`, `DefaultEngine.ini`, 실행 인자로 관리한다.
 
 ### `DefaultEngine.ini`
 
