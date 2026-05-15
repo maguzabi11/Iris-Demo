@@ -48,7 +48,18 @@ protected:
 	void OnRep_LastUpdateSequence();
 
 private:
+	void RefreshVisualState();
+
 	void LogSensorState(const TCHAR* Reason) const;
+
+	UPROPERTY(VisibleAnywhere, Category = "Iris Relay|Scenario A")
+	TObjectPtr<USceneComponent> SceneRoot;
+
+	UPROPERTY(VisibleAnywhere, Category = "Iris Relay|Scenario A")
+	TObjectPtr<class UStaticMeshComponent> SensorMesh;
+
+	UPROPERTY(VisibleAnywhere, Category = "Iris Relay|Scenario A")
+	TObjectPtr<class UTextRenderComponent> SensorLabel;
 
 	UPROPERTY(Replicated, EditAnywhere, Category = "Iris Relay|Scenario A")
 	int32 SensorId = INDEX_NONE;

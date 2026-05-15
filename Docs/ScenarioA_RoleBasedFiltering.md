@@ -211,7 +211,7 @@ actor별 replicated 속성:
 - [x] 서버에서 테스트 actor를 deterministic하게 spawn
 - [x] actor별 replicated property와 `OnRep` 로그 작성
 - [x] 로그/측정용 replicated stable id 작성
-- [ ] `RelaySensorActor`를 월드에서 볼 수 있도록 기본 visual mesh 추가
+- [x] `RelaySensorActor`를 월드에서 볼 수 있도록 기본 visual mesh 추가
 - [ ] actor count/zone 배치 seed를 설정으로 분리
 
 완료 기준:
@@ -226,6 +226,7 @@ actor별 replicated 속성:
 - 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-15: 서버/클라이언트의 local `Actor=RelaySensorActor_N` 이름이 서로 다를 수 있음을 PIE 로그로 확인. `ARelaySensorActor`에 replicated `SensorId`를 추가하고 로그 식별 기준을 `SensorId`, `DebugName`, `ZoneId`, `Sequence`로 변경.
 - 2026-05-15: 데모 가시성을 위해 `RelaySensorActor`에 visual mesh/component를 추가하기로 결정. 진행 시점은 `SensorId` 로그 확인 후, `RelayDroneActor`/`RelaySupplyCrateActor` 확장 전으로 둔다.
+- 2026-05-15: `ARelaySensorActor`에 기본 cylinder mesh와 text label을 추가. label은 `DebugName`, `SensorId`, `ZoneId`, `AlertLevel`을 표시하고 trigger 상태에서 빨간색으로 바뀐다. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 PIE 확인 방법:
 
@@ -321,9 +322,9 @@ PIE 확인 방법:
 
 가장 작은 다음 커밋 후보:
 
-1. `ERelayOperatorRole`과 role-aware `PlayerState` 골격 추가
-2. 접속 순서 기반 역할 자동 할당
-3. local debug log로 역할 확인
-4. UE 5.7.1 editor build 검증
+1. `RelayDroneActor` C++ class 작성
+2. `RelaySupplyCrateActor` C++ class 작성
+3. summary actor 또는 GameState summary 작성
+4. actor count/zone 배치 seed 설정 분리
 
-이 커밋이 통과하면 `A1. 역할 골격` 체크리스트를 갱신한다.
+다음 커밋부터는 Sensor와 같은 metadata/logging/visual 규칙을 Drone/Crate에도 맞춘다.

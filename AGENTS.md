@@ -30,6 +30,7 @@
 - 다음 작업으로 넘어가기 전에 이전 작업의 완료 여부와 검증 로그를 사용자에게 확인받는다.
 - 변경 후 가능하면 UE 5.7.1로 `IrisDemoEditor Win64 Development` 빌드를 확인한다.
 - 빌드 확인은 사용자에게 다시 묻지 않고 바로 실행한다.
+- 빌드가 성공하면 별도 확인 없이 관련 변경을 즉시 커밋한다.
 - 먼저 Scenario A의 role-based filtering 골격을 만들고, 이후 UObject subobject replication과 seamless travel 검증으로 확장한다.
 - Scenario A에서 Commander/FieldAgent/Spectator 같은 role은 테스트 actor 속성이 아니라 player/connection 속성으로 다룬다.
 - 테스트 actor에는 `ZoneId`, category, owner, summary/detail 구분 같은 metadata를 두고, filtering policy가 player role과 actor metadata를 비교해 복제 여부를 결정한다.
