@@ -6,9 +6,48 @@
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
+#include "EngineUtils.h"
+#include "HAL/IConsoleManager.h"
 #include "IrisDemo.h"
+#include "ScenarioA/RelayDroneActor.h"
 #include "ScenarioA/RelayPlayerState.h"
+#include "ScenarioA/RelaySensorActor.h"
+#include "ScenarioA/RelaySupplyCrateActor.h"
 #include "Widgets/Input/SVirtualJoystick.h"
+
+namespace
+{
+FString GetIrisReplicationModeLabel()
+{
+	const IConsoleVariable* UseIrisCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Iris.UseIrisReplication"));
+	if (!UseIrisCVar)
+	{
+		return TEXT("Unknown");
+	}
+
+	return UseIrisCVar->GetInt() != 0 ? TEXT("Iris") : TEXT("Generic");
+}
+
+template <typename TActorType>
+int32 CountScenarioAActors(UWorld* World)
+{
+	if (!World)
+	{
+		return 0;
+	}
+
+	int32 Count = 0;
+	for (TActorIterator<TActorType> It(World); It; ++It)
+	{
+		if (IsValid(*It))
+		{
+			++Count;
+		}
+	}
+
+	return Count;
+}
+}
 
 void AIrisDemoPlayerController::BeginPlay()
 {
@@ -70,6 +109,11 @@ void AIrisDemoPlayerController::SetupInputComponent()
 	}
 }
 
+void AIrisDemoPlayerController::IrisRelayLogBaselineSnapshot()
+{
+	LogScenarioABaselineSnapshot(TEXT("Console"));
+}
+
 bool AIrisDemoPlayerController::ShouldUseTouchControls() const
 {
 	// are we on a mobile platform? Should we force touch?
@@ -93,4 +137,36 @@ void AIrisDemoPlayerController::LogRelayRole() const
 	UE_LOG(LogIrisDemo, Log, TEXT("Local relay role ready: Controller=%s Role=%s"),
 		*GetName(),
 		*RelayPlayerState->GetOperatorRoleName());
+}
+
+void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source) const
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const int32 SensorCount = CountScenarioAActors<ARelaySensorActor>(World);
+	const int32 DroneCount = CountScenarioAActors<ARelayDroneActor>(World);
+	const int32 SupplyCrateCount = CountScenarioAActors<ARelaySupplyCrateActor>(World);
+	const int32 DetailActorTotal = SensorCount + DroneCount + SupplyCrateCount;
+
+	const ARelayPlayerState* RelayPlayerState = GetPlayerState<ARelayPlayerState>();
+	const FString RoleName = RelayPlayerState ? RelayPlayerState->GetOperatorRoleName() : TEXT("Unassigned");
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline client snapshot: Source=%s Mode=%s Role=%s Controller=%s SensorCount=%d DroneCount=%d SupplyCrateCount=%d DetailActorTotal=%d"),
+		Source ? Source : TEXT("Unknown"),
+		*GetIrisReplicationModeLabel(),
+		*RoleName,
+		*GetName(),
+		SensorCount,
+		DroneCount,
+		SupplyCrateCount,
+		DetailActorTotal);
 }

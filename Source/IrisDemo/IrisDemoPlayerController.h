@@ -17,6 +17,10 @@ UCLASS(abstract)
 class AIrisDemoPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+public:
+	UFUNCTION(Exec)
+	void IrisRelayLogBaselineSnapshot();
 	
 protected:
 
@@ -52,5 +56,7 @@ protected:
 	bool ShouldUseTouchControls() const;
 
 	void LogRelayRole() const;
+
+	void LogScenarioABaselineSnapshot(const TCHAR* Source) const;
 
 };

@@ -19,8 +19,8 @@
 - [x] Scenario A 전용 C++ class 골격 작성
 - [x] 역할 선택/할당 flow 작성
 - [ ] 역할별 replicated actor visibility 차이 구현
-- [ ] Generic/Iris 비교 실행 절차 작성
-- [ ] 측정 UI 또는 로그 요약 구현
+- [x] Generic/Iris 비교 실행 절차 작성
+- [x] 측정 UI 또는 로그 요약 구현
 - [x] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 확인
 
 ## 2. 시나리오 목표
@@ -268,9 +268,32 @@ PIE 확인 방법:
 
 ### A3. Baseline 비교 기준
 
-- [ ] Generic replication 실행 인자 정리: `-UseIrisReplication=0`
-- [ ] Iris 실행 인자 정리: `-UseIrisReplication=1`
-- [ ] 같은 seed/count/duration으로 실행하는 절차 작성
+A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 기대값은 역할별 차이가 나는 것이 아니라, Generic/Iris 양쪽에서 같은 seed/count/duration 조건으로 모든 상세 actor가 동일하게 수신되는지 확인하는 것이다. A4 이후에는 이 표가 "filtering 전 기준선"이 된다.
+
+고정 실행 조건:
+
+- 서버 형태: 먼저 listen server + 2 clients PIE로 확인하고, 이후 dedicated server + 2 clients로 반복한다.
+- 기본 인원: 2 clients에서는 Commander/FieldAgent만 기록하고, Spectator 비교는 3 clients에서 기록한다.
+- 기본 actor count: sensor 6, drone 3, supply crate 3, detail actor total 12.
+- 기본 seed/duration: `ScenarioASeed=1001`, `ScenarioARunDuration=30`, `ScenarioAUpdateInterval=2`.
+- A4 이전 기대값: Commander/FieldAgent/Spectator 모두 `DetailActorTotal=12`가 기준이다. 역할별 차이가 이미 난다면 filtering 결과가 아니라 baseline 복제 조건 문제로 본다.
+
+실행 인자:
+
+- Generic replication: `-UseIrisReplication=0`
+- Iris replication: `-UseIrisReplication=1`
+- 공통 조건: `-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30`
+- PIE URL option으로 넘길 때는 같은 이름을 `?ScenarioASeed=1001?ScenarioASensorCount=6?...` 형식으로 붙인다.
+
+기록할 로그:
+
+- 서버 시작 기준: `Scenario A baseline config`
+- 서버 측정 구간 종료: `Scenario A baseline server window complete`
+- 각 local client 수신 기준: console에서 `IrisRelayLogBaselineSnapshot` 실행 후 `Scenario A baseline client snapshot` 기록
+
+- [x] Generic replication 실행 인자 정리: `-UseIrisReplication=0`
+- [x] Iris 실행 인자 정리: `-UseIrisReplication=1`
+- [x] 같은 seed/count/duration으로 실행하는 절차 작성
 - [ ] Generic mode에서 역할별 수신 actor count 기록
 - [ ] Iris mode에서 역할별 수신 actor count 기록
 - [ ] 비교 결과를 `Docs/ScenarioA_RoleBasedFiltering.md`에 기록
@@ -278,6 +301,12 @@ PIE 확인 방법:
 완료 기준:
 
 - Generic/Iris 실행 조건을 동일하게 맞춘 비교 표가 최소 1회 기록된다.
+
+검증 메모:
+
+- 2026-05-15: baseline 비교용 실행 옵션을 `AIrisDemoGameMode`에서 읽도록 추가. `ScenarioASeed`, actor count, update interval, run duration을 command line 또는 PIE URL option으로 고정할 수 있다.
+- 2026-05-15: `IrisRelayLogBaselineSnapshot` console command 추가. 각 local client에서 현재 role, Generic/Iris mode, sensor/drone/supply crate 수신 수, detail actor total을 로그로 남긴다.
+- 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 ### A4. Role-Based Filtering 구현
 
@@ -295,13 +324,13 @@ PIE 확인 방법:
 
 ### A5. Debug UI/로그
 
-- [ ] 현재 role 표시
-- [ ] local received sensor/drone/crate count 표시
+- [x] 현재 role 표시
+- [x] local received sensor/drone/crate count 표시
 - [ ] zone별 received count 표시
 - [ ] last sequence 표시
-- [ ] Generic/Iris mode 표시
-- [ ] server summary log 출력
-- [ ] 결과 캡처용 console command 또는 key binding 작성
+- [x] Generic/Iris mode 표시
+- [x] server summary log 출력
+- [x] 결과 캡처용 console command 또는 key binding 작성
 
 완료 기준:
 
@@ -347,14 +376,15 @@ PIE 확인 방법:
 |------|------|------|-----------|
 | 2026-05-15 | Scenario A는 별도 문서에서 체크리스트를 관리한다. | `planning.md`는 전체 기획 문서라 구현 진행 체크를 계속 누적하기에 길어질 수 있음 | 구현이 진행될 때 이 문서를 함께 갱신 |
 | 2026-05-15 | 첫 구현 범위에서 UObject/subobject, prioritization, seamless travel은 제외한다. | Scenario A의 핵심은 role/connection별 filtering 결과를 먼저 증명하는 것 | 이후 Scenario C/B/D에서 확장 |
+| 2026-05-15 | A3 baseline은 A4 filtering 전 control run으로 고정한다. | 아직 role-based filtering을 넣기 전이므로 역할별 actor count는 같아야 Generic/Iris 비교 기준으로 쓸 수 있음 | Generic/Iris를 같은 seed/count/duration으로 각각 실행하고 실제 수신 수를 결과 표에 기록 |
 
 ## 8. 다음 작업 후보
 
 가장 작은 다음 커밋 후보:
 
 1. summary actor 또는 GameState summary 작성
-2. A3 Generic/Iris 실행 인자와 동일 조건 비교 절차 작성
+2. A3 Generic/Iris 실제 실행 결과 기록
 3. actor count/zone 배치 seed 설정 분리
-4. local received actor count 로그 또는 debug UI 준비
+4. zone별 received count와 last sequence 로그 또는 debug UI 준비
 
-detail actor category는 Sensor/Drone/Supply까지 채웠다. 다음부터는 summary category를 추가하거나, A3에서 Generic/Iris 비교 실행 절차를 먼저 고정한다.
+detail actor category는 Sensor/Drone/Supply까지 채웠고, A3의 실행 조건과 로그 기준은 고정했다. 다음부터는 summary category를 추가하거나, A3 기준으로 Generic/Iris 실제 실행 결과를 표에 기록한다.

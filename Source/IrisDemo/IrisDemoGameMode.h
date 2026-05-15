@@ -51,7 +51,16 @@ private:
 
 	void UpdateScenarioASupplyCrates();
 
+	void ApplyScenarioAOptions(const FString& Options);
+
+	void LogScenarioABaselineConfig() const;
+
+	void LogScenarioABaselineComplete() const;
+
 	int32 NextScenarioARoleIndex = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
+	int32 ScenarioASeed = 1001;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	TSubclassOf<ARelaySensorActor> ScenarioASensorClass;
@@ -61,6 +70,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.1"))
 	float ScenarioASensorUpdateInterval = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.0"))
+	float ScenarioARunDuration = 30.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	TSubclassOf<ARelayDroneActor> ScenarioADroneClass;
@@ -84,4 +96,6 @@ private:
 	TArray<TObjectPtr<ARelaySupplyCrateActor>> ScenarioASupplyCrates;
 
 	FTimerHandle ScenarioASensorUpdateTimerHandle;
+
+	FTimerHandle ScenarioABaselineCompleteTimerHandle;
 };
