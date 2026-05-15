@@ -7,6 +7,7 @@
 #include "ScenarioA/RelayDroneActor.h"
 #include "ScenarioA/RelayPlayerState.h"
 #include "ScenarioA/RelaySensorActor.h"
+#include "ScenarioA/RelaySupplyCrateActor.h"
 #include "TimerManager.h"
 
 AIrisDemoGameMode::AIrisDemoGameMode()
@@ -14,6 +15,7 @@ AIrisDemoGameMode::AIrisDemoGameMode()
 	EnsureScenarioAPlayerStateClass();
 	ScenarioASensorClass = ARelaySensorActor::StaticClass();
 	ScenarioADroneClass = ARelayDroneActor::StaticClass();
+	ScenarioASupplyCrateClass = ARelaySupplyCrateActor::StaticClass();
 }
 
 void AIrisDemoGameMode::BeginPlay()
@@ -22,8 +24,9 @@ void AIrisDemoGameMode::BeginPlay()
 
 	SpawnScenarioASensors();
 	SpawnScenarioADrones();
+	SpawnScenarioASupplyCrates();
 
-	if ((ScenarioASensors.Num() > 0 || ScenarioADrones.Num() > 0) && ScenarioASensorUpdateInterval > 0.0f)
+	if ((ScenarioASensors.Num() > 0 || ScenarioADrones.Num() > 0 || ScenarioASupplyCrates.Num() > 0) && ScenarioASensorUpdateInterval > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(
 			ScenarioASensorUpdateTimerHandle,
@@ -159,6 +162,7 @@ void AIrisDemoGameMode::UpdateScenarioASensors()
 	}
 
 	UpdateScenarioADrones();
+	UpdateScenarioASupplyCrates();
 }
 
 void AIrisDemoGameMode::SpawnScenarioADrones()
@@ -240,5 +244,75 @@ void AIrisDemoGameMode::UpdateScenarioADrones()
 		}
 
 		Drone->SetDroneState(NextBattery, NextState);
+	}
+}
+
+void AIrisDemoGameMode::SpawnScenarioASupplyCrates()
+{
+	if (!HasAuthority() || !ScenarioASupplyCrateClass || ScenarioASupplyCrateCount <= 0)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	ScenarioASupplyCrates.Reset();
+
+	for (int32 CrateIndex = 0; CrateIndex < ScenarioASupplyCrateCount; ++CrateIndex)
+	{
+		const int32 ZoneId = CrateIndex % 3;
+		const int32 OwningSquadId = CrateIndex % 2;
+		const FVector SpawnLocation(
+			static_cast<double>(ZoneId) * 450.0,
+			650.0,
+			90.0);
+		const FRotator SpawnRotation(0.0, 30.0 * static_cast<double>(CrateIndex), 0.0);
+
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		ARelaySupplyCrateActor* SupplyCrate = World->SpawnActor<ARelaySupplyCrateActor>(
+			ScenarioASupplyCrateClass,
+			SpawnLocation,
+			SpawnRotation,
+			SpawnParameters);
+
+		if (!SupplyCrate)
+		{
+			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A supply crate spawn failed: Index=%d Zone=%d Squad=%d"), CrateIndex, ZoneId, OwningSquadId);
+			continue;
+		}
+
+		SupplyCrate->ConfigureCrate(CrateIndex, ZoneId, OwningSquadId, FName(*FString::Printf(TEXT("Crate_%02d"), CrateIndex)), true);
+		SupplyCrate->SetCrateState(12 + CrateIndex * 4, CrateIndex == 0);
+		ScenarioASupplyCrates.Add(SupplyCrate);
+	}
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A supply crates spawned: Count=%d"), ScenarioASupplyCrates.Num());
+}
+
+void AIrisDemoGameMode::UpdateScenarioASupplyCrates()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	for (int32 CrateIndex = 0; CrateIndex < ScenarioASupplyCrates.Num(); ++CrateIndex)
+	{
+		ARelaySupplyCrateActor* SupplyCrate = ScenarioASupplyCrates[CrateIndex];
+		if (!IsValid(SupplyCrate) || !SupplyCrate->IsScenarioAEnabled())
+		{
+			continue;
+		}
+
+		const int32 NextStockCount = (SupplyCrate->GetStockCount() <= 2) ? 16 + CrateIndex : SupplyCrate->GetStockCount() - (1 + CrateIndex);
+		const bool bNextReserved = ((SupplyCrate->GetLastUpdateSequence() + CrateIndex) % 2) == 0;
+		SupplyCrate->SetCrateState(NextStockCount, bNextReserved);
 	}
 }

@@ -10,6 +10,7 @@
 
 class ARelaySensorActor;
 class ARelayDroneActor;
+class ARelaySupplyCrateActor;
 
 /**
  *  Simple GameMode for a third person game
@@ -46,6 +47,10 @@ private:
 
 	void UpdateScenarioADrones();
 
+	void SpawnScenarioASupplyCrates();
+
+	void UpdateScenarioASupplyCrates();
+
 	int32 NextScenarioARoleIndex = 0;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
@@ -63,11 +68,20 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0"))
 	int32 ScenarioADroneCount = 3;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
+	TSubclassOf<ARelaySupplyCrateActor> ScenarioASupplyCrateClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0"))
+	int32 ScenarioASupplyCrateCount = 3;
+
 	UPROPERTY()
 	TArray<TObjectPtr<ARelaySensorActor>> ScenarioASensors;
 
 	UPROPERTY()
 	TArray<TObjectPtr<ARelayDroneActor>> ScenarioADrones;
+
+	UPROPERTY()
+	TArray<TObjectPtr<ARelaySupplyCrateActor>> ScenarioASupplyCrates;
 
 	FTimerHandle ScenarioASensorUpdateTimerHandle;
 };

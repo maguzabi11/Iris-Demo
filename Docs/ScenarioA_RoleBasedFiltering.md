@@ -232,7 +232,7 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 
 - [x] `RelaySensorActor` C++ class 작성
 - [x] `RelayDroneActor` C++ class 작성
-- [ ] `RelaySupplyCrateActor` C++ class 작성
+- [x] `RelaySupplyCrateActor` C++ class 작성
 - [ ] summary actor 또는 GameState summary 작성
 - [x] 서버에서 테스트 actor를 deterministic하게 spawn
 - [x] actor별 replicated property와 `OnRep` 로그 작성
@@ -256,14 +256,15 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 - 2026-05-15: `ARelaySensorActor`에 기본 cylinder mesh와 text label을 추가. label은 `DebugName`, `SensorId`, `ZoneId`, `AlertLevel`을 표시하고 trigger 상태에서 빨간색으로 바뀐다. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-15: `ARelayDroneActor` 추가. `ZoneId`, `DebugName`, `LastUpdateSequence`, `bScenarioAEnabled`, `BatteryPercent`, `DroneState` 복제와 `OnRep` 로그 작성. `AIrisDemoGameMode`가 drone 3개를 zone별 deterministic 위치에 spawn하고 sensor update timer에서 함께 상태를 갱신하도록 구현. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-15: `ERelayInterestCategory`, `ERelayInterestDetailLevel` 추가. `ARelaySensorActor`와 `ARelayDroneActor`가 category/detail metadata를 복제하고 로그에 함께 출력하도록 구현. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+- 2026-05-15: `ARelaySupplyCrateActor` 추가. `ZoneId`, `OwningSquadId`, `InterestCategory=SupplyDetail`, `InterestDetailLevel=Detail`, `StockCount`, `bReserved` 복제와 `OnRep` 로그 작성. 보급품은 이후 role/category/zone뿐 아니라 squad/owner 계열 filtering 조건을 검증하기 위한 detail actor로 사용한다. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 PIE 확인 방법:
 
 1. ThirdPerson 맵에서 listen server + 2 clients PIE 실행.
-2. Output Log에서 `Scenario A sensors spawned: Count=6`, `Scenario A drones spawned: Count=3` 확인.
-3. 서버 로그에서 `Relay sensor updated`, `Relay drone updated`가 2초마다 증가하는지 확인.
-4. 클라이언트 로그에서 `Relay sensor replicated`, `Relay drone replicated`와 `Sequence` 증가를 확인.
-5. 서버/클라이언트의 `Actor=RelaySensorActor_N`, `Actor=RelayDroneActor_N` 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated stable id, `DebugName`, `ZoneId`, `Sequence`를 사용한다.
+2. Output Log에서 `Scenario A sensors spawned: Count=6`, `Scenario A drones spawned: Count=3`, `Scenario A supply crates spawned: Count=3` 확인.
+3. 서버 로그에서 `Relay sensor updated`, `Relay drone updated`, `Relay supply crate updated`가 2초마다 증가하는지 확인.
+4. 클라이언트 로그에서 `Relay sensor replicated`, `Relay drone replicated`, `Relay supply crate replicated`와 `Sequence` 증가를 확인.
+5. 서버/클라이언트의 local actor 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated stable id, `DebugName`, `ZoneId`, `Category`, `DetailLevel`, `Sequence`를 사용한다.
 
 ### A3. Baseline 비교 기준
 
@@ -351,9 +352,9 @@ PIE 확인 방법:
 
 가장 작은 다음 커밋 후보:
 
-1. `RelaySupplyCrateActor` C++ class 작성
-2. summary actor 또는 GameState summary 작성
-3. A3 Generic/Iris 실행 인자와 동일 조건 비교 절차 작성
-4. actor count/zone 배치 seed 설정 분리
+1. summary actor 또는 GameState summary 작성
+2. A3 Generic/Iris 실행 인자와 동일 조건 비교 절차 작성
+3. actor count/zone 배치 seed 설정 분리
+4. local received actor count 로그 또는 debug UI 준비
 
-공통 interest metadata가 들어갔으므로, 다음부터는 Supply/summary까지 category 축을 채우거나 A3의 실행 절차를 먼저 고정한다.
+detail actor category는 Sensor/Drone/Supply까지 채웠다. 다음부터는 summary category를 추가하거나, A3에서 Generic/Iris 비교 실행 절차를 먼저 고정한다.
