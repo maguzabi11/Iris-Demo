@@ -10,6 +10,7 @@
 #include "HAL/IConsoleManager.h"
 #include "IrisDemo.h"
 #include "ScenarioA/RelayDroneActor.h"
+#include "ScenarioA/RelayOperationalSummaryActor.h"
 #include "ScenarioA/RelayPlayerState.h"
 #include "ScenarioA/RelaySensorActor.h"
 #include "ScenarioA/RelaySupplyCrateActor.h"
@@ -134,9 +135,10 @@ void AIrisDemoPlayerController::LogRelayRole() const
 		return;
 	}
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Local relay role ready: Controller=%s Role=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Local relay role ready: Controller=%s Role=%s Zone=%d"),
 		*GetName(),
-		*RelayPlayerState->GetOperatorRoleName());
+		*RelayPlayerState->GetOperatorRoleName(),
+		RelayPlayerState->GetAssignedZoneId());
 }
 
 void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source) const
@@ -155,18 +157,22 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 	const int32 SensorCount = CountScenarioAActors<ARelaySensorActor>(World);
 	const int32 DroneCount = CountScenarioAActors<ARelayDroneActor>(World);
 	const int32 SupplyCrateCount = CountScenarioAActors<ARelaySupplyCrateActor>(World);
+	const int32 SummaryCount = CountScenarioAActors<ARelayOperationalSummaryActor>(World);
 	const int32 DetailActorTotal = SensorCount + DroneCount + SupplyCrateCount;
 
 	const ARelayPlayerState* RelayPlayerState = GetPlayerState<ARelayPlayerState>();
 	const FString RoleName = RelayPlayerState ? RelayPlayerState->GetOperatorRoleName() : TEXT("Unassigned");
+	const int32 AssignedZoneId = RelayPlayerState ? RelayPlayerState->GetAssignedZoneId() : INDEX_NONE;
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline client snapshot: Source=%s Mode=%s Role=%s Controller=%s SensorCount=%d DroneCount=%d SupplyCrateCount=%d DetailActorTotal=%d"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline client snapshot: Source=%s Mode=%s Role=%s Zone=%d Controller=%s SensorCount=%d DroneCount=%d SupplyCrateCount=%d SummaryCount=%d DetailActorTotal=%d"),
 		Source ? Source : TEXT("Unknown"),
 		*GetIrisReplicationModeLabel(),
 		*RoleName,
+		AssignedZoneId,
 		*GetName(),
 		SensorCount,
 		DroneCount,
 		SupplyCrateCount,
+		SummaryCount,
 		DetailActorTotal);
 }

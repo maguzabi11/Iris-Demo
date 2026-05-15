@@ -21,7 +21,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Iris Relay|Role")
 	FString GetOperatorRoleName() const;
 
+	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
+	int32 GetAssignedZoneId() const { return AssignedZoneId; }
+
 	void SetOperatorRole(ERelayOperatorRole NewRole);
+
+	void SetAssignedZoneId(int32 NewAssignedZoneId);
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -29,7 +34,13 @@ protected:
 	UFUNCTION()
 	void OnRep_OperatorRole();
 
+	UFUNCTION()
+	void OnRep_AssignedZoneId();
+
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_OperatorRole, VisibleAnywhere, Category = "Iris Relay|Role")
 	ERelayOperatorRole OperatorRole = ERelayOperatorRole::Unassigned;
+
+	UPROPERTY(ReplicatedUsing = OnRep_AssignedZoneId, VisibleAnywhere, Category = "Iris Relay|Scenario A")
+	int32 AssignedZoneId = INDEX_NONE;
 };

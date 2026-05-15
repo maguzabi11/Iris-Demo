@@ -124,6 +124,20 @@ Iris에서 봐야 할 필터 유형:
 
 Replication Graph를 쓰던 사고방식에서는 “노드에 actor를 넣는다”가 핵심이었다. Iris에서는 “object가 어떤 connection 집합에 허용되는가”와 “필터 정책을 어떻게 구성하는가”로 사고를 바꿔야 한다.
 
+UE 5.7.1 헤더 기준으로 `UReplicationSystem`은 group filtering에 필요한 공개 API를 제공한다.
+
+- `CreateGroup`, `FindGroup`, `AddToGroup`, `RemoveFromGroup`
+- `AddExclusionFilterGroup`, `AddInclusionFilterGroup`
+- `SetGroupFilterStatus(GroupHandle, ConnectionId, ENetFilterStatus)`
+- `SetGroupFilterStatus(GroupHandle, ENetFilterStatus)`로 전체 connection 기본 상태 지정
+
+Scenario A의 첫 A4 구현은 custom `UNetObjectFilter` 대신 exclusion group을 사용한다. detail actor를 zone별 group에 넣고, summary actor를 summary group에 넣은 뒤 connection별로 `Allow`/`Disallow`를 설정한다. Actor의 Iris handle은 `UObjectReplicationBridge::GetReplicatedRefHandle(Object)`로 얻고, connection id는 `UNetConnection::GetConnectionHandle().GetParentConnectionId()`를 사용한다. `FConnectionHandle`에서 parent connection id `0`은 invalid다.
+
+주의할 점:
+- group filtering은 Iris `UReplicationSystem`이 있을 때만 적용된다.
+- Generic replication 비교를 유지하려면 filtering 옵션을 별도로 두는 편이 안전하다.
+- filter group에서 object가 제외되면 remote side의 해당 object가 destroy될 수 있으므로, baseline 측정과 filtering 측정은 옵션을 분리해 실행한다.
+
 ## 6. Prioritization
 
 Prioritization은 “보낼 수 있는 것 중 무엇을 먼저 보낼 것인가?”를 결정한다.

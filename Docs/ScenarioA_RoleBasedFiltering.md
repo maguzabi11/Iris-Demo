@@ -7,7 +7,7 @@
 - 기준일: 2026-05-15
 - 엔진 기준: UE 5.7.1
 - 목표 시나리오: 역할별 관심 정보 차등 복제
-- 현재 단계: Iris 프로젝트 설정은 완료했고, Scenario A gameplay/replication 골격을 설계하고 구현할 차례
+- 현재 단계: A3 baseline 기록은 남아 있지만, A4 role-based filtering의 첫 구현 골격까지 빌드 검증한 상태
 
 이미 확인한 기반 상태:
 
@@ -18,7 +18,7 @@
 - [x] `Config/DefaultEngine.ini`에 registered subobject list/push model 관련 기본 설정 추가
 - [x] Scenario A 전용 C++ class 골격 작성
 - [x] 역할 선택/할당 flow 작성
-- [ ] 역할별 replicated actor visibility 차이 구현
+- [x] 역할별 replicated actor visibility 차이 구현
 - [x] Generic/Iris 비교 실행 절차 작성
 - [x] 측정 UI 또는 로그 요약 구현
 - [x] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 확인
@@ -96,9 +96,9 @@ FilteringPolicy(Role, ActorMetadata) -> allow / deny
 현재 구현 class:
 
 - `ERelayOperatorRole`: Scenario A 플레이어 역할 enum
-- `ARelayPlayerState`: replicated `OperatorRole` 보관
-- `AIrisDemoGameMode`: `PostLogin`에서 접속 순서 기반 role 자동 할당
-- `AIrisDemoPlayerController`: local controller의 role 확인 로그 출력
+- `ARelayPlayerState`: replicated `OperatorRole`, `AssignedZoneId` 보관
+- `AIrisDemoGameMode`: `PostLogin`에서 접속 순서 기반 role 자동 할당, FieldAgent zone 자동 할당
+- `AIrisDemoPlayerController`: local controller의 role/zone 확인 로그 출력
 
 역할 할당 방식은 초기에는 간단하게 시작한다.
 
@@ -149,11 +149,11 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 | `ARelaySensorActor` | `SensorDetail` | zone별 정적 경보/detail 정보. FieldAgent는 자기 zone 중심, Commander는 전체 또는 요약, Spectator는 상세 제한 |
 | `ARelayDroneActor` | `DroneDetail` | 이동 작전 자산/detail 정보. FieldAgent는 자기 zone 또는 근처 drone, Spectator는 detail 차단, Commander는 전체 자산 상태 또는 summary |
 | `RelaySupplyCrateActor` | `SupplyDetail` | 보급/소유/예약 상태. 이후 owner/squad/zone 조건을 섞기 위한 대상 |
-| Summary actor 또는 GameState summary | `OperationalSummary` | Commander/Spectator가 받을 축약 정보. detail actor를 받지 않아도 전체 상황을 설명할 수 있게 함 |
+| `ARelayOperationalSummaryActor` | `OperationalSummary` | Commander/Spectator가 받을 축약 정보. detail actor를 받지 않아도 전체 상황을 설명할 수 있게 함 |
 
-현재 `ARelayDroneActor`는 아직 `ARelaySensorActor`와 복제 정책상 차이를 보여주는 단계가 아니다. 지금은 여러 actor taxonomy와 replicated metadata를 먼저 깔아두는 단계이며, 실제 차이는 A4에서 Iris filtering policy가 role/category/zone을 기준으로 connection별 허용 대상을 나눌 때 드러난다.
+현재 A4 구현은 actor별 custom filter class를 새로 만들지 않고, UE 5.7.1의 `UReplicationSystem` group filtering API를 사용한다. 상세 actor는 zone별 exclusion group에 넣고, summary actor는 별도 summary group에 넣는다. 각 connection의 `ARelayPlayerState::OperatorRole`과 `AssignedZoneId`를 기준으로 group status를 `Allow` 또는 `Disallow`로 갱신한다.
 
-다음 구현에서는 각 actor에 공통 interest metadata를 명시한다. 예를 들어 `SensorDetail`, `DroneDetail`, `SupplyDetail`, `OperationalSummary` 같은 category enum과 summary/detail 구분을 코드에 드러내서, 여러 actor 종류를 둔 의도가 filtering 구현에서도 바로 보이게 한다.
+`ScenarioAEnableRoleFiltering=1` 옵션을 켤 때만 filtering을 적용한다. 이 옵션을 끄면 A3 baseline처럼 role과 무관하게 detail actor total을 비교할 수 있다.
 
 ### 4.3 Filtering 정책
 
@@ -167,6 +167,16 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
    - UE 5.7.1에서 사용 가능한 공식 Iris filtering API를 기준으로 connection/group filter 적용 지점을 찾는다.
    - role/zone을 group 또는 connection 조건으로 매핑한다.
    - Replication Graph는 도입하지 않는다.
+
+현재 A4 구현 정책:
+
+| 역할 | Detail group | Summary group |
+|------|--------------|---------------|
+| Commander | 모든 zone detail 허용 | 허용 |
+| FieldAgent | `AssignedZoneId`와 같은 zone detail만 허용 | 제한 |
+| Spectator | 모든 detail 제한 | 허용 |
+
+현재는 FieldAgent 기준을 zone으로만 잡고, distance 기반 확장은 다음 단계로 남긴다. Spectator는 summary actor만 받도록 제한하지만, summary update cadence를 따로 늦추는 delayed summary 처리는 아직 별도 TODO다.
 
 구현 중 새로 확인한 API 제약은 이 문서의 “결정 로그”와 `Docs/Iris기본지식.md`에 반영한다.
 
@@ -233,7 +243,7 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 - [x] `RelaySensorActor` C++ class 작성
 - [x] `RelayDroneActor` C++ class 작성
 - [x] `RelaySupplyCrateActor` C++ class 작성
-- [ ] summary actor 또는 GameState summary 작성
+- [x] summary actor 또는 GameState summary 작성
 - [x] 서버에서 테스트 actor를 deterministic하게 spawn
 - [x] actor별 replicated property와 `OnRep` 로그 작성
 - [x] 로그/측정용 replicated stable id 작성
@@ -257,11 +267,12 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 - 2026-05-15: `ARelayDroneActor` 추가. `ZoneId`, `DebugName`, `LastUpdateSequence`, `bScenarioAEnabled`, `BatteryPercent`, `DroneState` 복제와 `OnRep` 로그 작성. `AIrisDemoGameMode`가 drone 3개를 zone별 deterministic 위치에 spawn하고 sensor update timer에서 함께 상태를 갱신하도록 구현. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-15: `ERelayInterestCategory`, `ERelayInterestDetailLevel` 추가. `ARelaySensorActor`와 `ARelayDroneActor`가 category/detail metadata를 복제하고 로그에 함께 출력하도록 구현. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-15: `ARelaySupplyCrateActor` 추가. `ZoneId`, `OwningSquadId`, `InterestCategory=SupplyDetail`, `InterestDetailLevel=Detail`, `StockCount`, `bReserved` 복제와 `OnRep` 로그 작성. 보급품은 이후 role/category/zone뿐 아니라 squad/owner 계열 filtering 조건을 검증하기 위한 detail actor로 사용한다. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+- 2026-05-15: `ARelayOperationalSummaryActor` 추가. `InterestCategory=OperationalSummary`, `InterestDetailLevel=Summary`, `KnownAlertCount`, `KnownDroneCount`, `KnownSupplyCount` 복제와 `OnRep` 로그 작성. `AIrisDemoGameMode`가 summary actor 1개를 spawn하고 sensor/drone/supply 상태 변경에 맞춰 summary count를 갱신한다. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 PIE 확인 방법:
 
 1. ThirdPerson 맵에서 listen server + 2 clients PIE 실행.
-2. Output Log에서 `Scenario A sensors spawned: Count=6`, `Scenario A drones spawned: Count=3`, `Scenario A supply crates spawned: Count=3` 확인.
+2. Output Log에서 `Scenario A sensors spawned: Count=6`, `Scenario A drones spawned: Count=3`, `Scenario A supply crates spawned: Count=3`, `Scenario A operational summary spawned: Count=1` 확인.
 3. 서버 로그에서 `Relay sensor updated`, `Relay drone updated`, `Relay supply crate updated`가 2초마다 증가하는지 확인.
 4. 클라이언트 로그에서 `Relay sensor replicated`, `Relay drone replicated`, `Relay supply crate replicated`와 `Sequence` 증가를 확인.
 5. 서버/클라이언트의 local actor 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated stable id, `DebugName`, `ZoneId`, `Category`, `DetailLevel`, `Sequence`를 사용한다.
@@ -282,7 +293,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 - Generic replication: `-UseIrisReplication=0`
 - Iris replication: `-UseIrisReplication=1`
-- 공통 조건: `-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30`
+- 공통 조건: `-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30 -ScenarioAEnableRoleFiltering=0`
 - PIE URL option으로 넘길 때는 같은 이름을 `?ScenarioASeed=1001?ScenarioASensorCount=6?...` 형식으로 붙인다.
 
 기록할 로그:
@@ -307,20 +318,34 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 2026-05-15: baseline 비교용 실행 옵션을 `AIrisDemoGameMode`에서 읽도록 추가. `ScenarioASeed`, actor count, update interval, run duration을 command line 또는 PIE URL option으로 고정할 수 있다.
 - 2026-05-15: `IrisRelayLogBaselineSnapshot` console command 추가. 각 local client에서 현재 role, Generic/Iris mode, sensor/drone/supply crate 수신 수, detail actor total을 로그로 남긴다.
 - 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+- 2026-05-15: A4 구현 이후에도 `ScenarioAEnableRoleFiltering=0`을 명시하면 A3 baseline control run을 이어갈 수 있도록 유지했다. snapshot 로그에는 role zone과 summary count가 추가되었다.
 
 ### A4. Role-Based Filtering 구현
 
-- [ ] UE 5.7.1 공식 문서/헤더 기준으로 Iris filtering 적용 API 확인
-- [ ] Commander connection에 전체 summary/detail 허용
-- [ ] FieldAgent connection에 zone/distance 기반 detail 허용
-- [ ] Spectator connection에 delayed summary만 허용
+- [x] UE 5.7.1 공식 문서/헤더 기준으로 Iris filtering 적용 API 확인
+- [x] Commander connection에 전체 summary/detail 허용
+- [x] FieldAgent connection에 zone/distance 기반 detail 허용
+- [x] Spectator connection에 summary만 허용
+- [ ] Spectator summary update cadence 지연 처리
 - [ ] 역할 변경 시 filter membership 갱신
-- [ ] actor spawn/despawn 시 filter membership 갱신
-- [ ] filtering 실패 시 fallback 로그 또는 ensure 추가
+- [x] actor spawn 시 filter membership 갱신
+- [ ] actor despawn 시 filter membership 정리
+- [x] filtering 실패 시 fallback 로그 또는 ensure 추가
 
 완료 기준:
 
 - 같은 서버 상태에서 역할별 클라이언트가 수신하는 detailed actor set이 다르고, 의도하지 않은 상세 actor가 Spectator에 복제되지 않는다.
+
+검증 메모:
+
+- 2026-05-15: UE 5.7.1 헤더 기준으로 `UReplicationSystem::CreateGroup`, `AddExclusionFilterGroup`, `AddToGroup`, `SetGroupFilterStatus`, `UObjectReplicationBridge::GetReplicatedRefHandle` 사용 가능 확인.
+- 2026-05-15: `ScenarioAEnableRoleFiltering=1`일 때 detail actor를 zone별 exclusion group에 넣고, summary actor를 `ScenarioA_OperationalSummary` group에 넣도록 구현. connection id는 `APlayerController::GetNetConnection()->GetConnectionHandle().GetParentConnectionId()`를 사용한다.
+- 2026-05-15: `Tools\BuildEditor.bat`로 UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공. PIE role별 actual count 검증은 아직 남아 있다.
+
+실행 인자:
+
+- A4 Iris filtering: `-UseIrisReplication=1 -ScenarioAEnableRoleFiltering=1 -ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30`
+- Generic mode 또는 `ScenarioAEnableRoleFiltering=0`에서는 role filtering을 적용하지 않는다.
 
 ### A5. Debug UI/로그
 
@@ -377,14 +402,16 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 | 2026-05-15 | Scenario A는 별도 문서에서 체크리스트를 관리한다. | `planning.md`는 전체 기획 문서라 구현 진행 체크를 계속 누적하기에 길어질 수 있음 | 구현이 진행될 때 이 문서를 함께 갱신 |
 | 2026-05-15 | 첫 구현 범위에서 UObject/subobject, prioritization, seamless travel은 제외한다. | Scenario A의 핵심은 role/connection별 filtering 결과를 먼저 증명하는 것 | 이후 Scenario C/B/D에서 확장 |
 | 2026-05-15 | A3 baseline은 A4 filtering 전 control run으로 고정한다. | 아직 role-based filtering을 넣기 전이므로 역할별 actor count는 같아야 Generic/Iris 비교 기준으로 쓸 수 있음 | Generic/Iris를 같은 seed/count/duration으로 각각 실행하고 실제 수신 수를 결과 표에 기록 |
+| 2026-05-15 | A4 filtering은 `ScenarioAEnableRoleFiltering=1` opt-in으로 둔다. | A3 baseline 실제 측정이 아직 비어 있으므로 필터를 기본 적용하면 pre-filter control run을 잃게 됨 | A3는 옵션 off, A4는 옵션 on으로 각각 결과 표를 기록 |
+| 2026-05-15 | 첫 A4 구현은 Iris group filtering으로 시작한다. | UE 5.7.1 공개 헤더에서 group 생성/멤버십/connection별 status API가 확인되며, custom `UNetObjectFilter`보다 작은 빌드 단위로 검증 가능 | PIE에서 role별 actual count 확인 후 distance/role-change 갱신으로 확장 |
 
 ## 8. 다음 작업 후보
 
 가장 작은 다음 커밋 후보:
 
-1. summary actor 또는 GameState summary 작성
+1. `ScenarioAEnableRoleFiltering=1`로 listen server + 3 clients PIE 실행 후 Commander/FieldAgent/Spectator actual count 기록
 2. A3 Generic/Iris 실제 실행 결과 기록
-3. actor count/zone 배치 seed 설정 분리
+3. FieldAgent distance 기준 또는 role 변경 console command 추가
 4. zone별 received count와 last sequence 로그 또는 debug UI 준비
 
-detail actor category는 Sensor/Drone/Supply까지 채웠고, A3의 실행 조건과 로그 기준은 고정했다. 다음부터는 summary category를 추가하거나, A3 기준으로 Generic/Iris 실제 실행 결과를 표에 기록한다.
+detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 골격도 빌드 검증했다. 다음부터는 PIE에서 옵션 off/on 결과를 각각 표에 채우는 것이 가장 작고 확인 가능한 단위다.

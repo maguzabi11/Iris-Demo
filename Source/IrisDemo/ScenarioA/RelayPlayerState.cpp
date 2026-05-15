@@ -30,11 +30,27 @@ void ARelayPlayerState::SetOperatorRole(ERelayOperatorRole NewRole)
 		*GetOperatorRoleName());
 }
 
+void ARelayPlayerState::SetAssignedZoneId(int32 NewAssignedZoneId)
+{
+	if (!HasAuthority() || AssignedZoneId == NewAssignedZoneId)
+	{
+		return;
+	}
+
+	AssignedZoneId = NewAssignedZoneId;
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Relay zone assigned: PlayerState=%s Role=%s Zone=%d"),
+		*GetName(),
+		*GetOperatorRoleName(),
+		AssignedZoneId);
+}
+
 void ARelayPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ARelayPlayerState, OperatorRole);
+	DOREPLIFETIME(ARelayPlayerState, AssignedZoneId);
 }
 
 void ARelayPlayerState::OnRep_OperatorRole()
@@ -42,4 +58,12 @@ void ARelayPlayerState::OnRep_OperatorRole()
 	UE_LOG(LogIrisDemo, Log, TEXT("Relay role replicated: PlayerState=%s Role=%s"),
 		*GetName(),
 		*GetOperatorRoleName());
+}
+
+void ARelayPlayerState::OnRep_AssignedZoneId()
+{
+	UE_LOG(LogIrisDemo, Log, TEXT("Relay zone replicated: PlayerState=%s Role=%s Zone=%d"),
+		*GetName(),
+		*GetOperatorRoleName(),
+		AssignedZoneId);
 }

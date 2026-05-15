@@ -23,7 +23,9 @@ public class IrisDemo : ModuleRules
 			"Slate"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] {
+			"IrisCore"
+		});
 
 		PublicIncludePaths.AddRange(new string[] {
 			"IrisDemo",
