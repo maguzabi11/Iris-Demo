@@ -127,7 +127,7 @@ void AIrisDemoGameMode::SpawnScenarioASensors()
 			continue;
 		}
 
-		Sensor->ConfigureSensor(ZoneId, FName(*FString::Printf(TEXT("Sensor_%02d"), SensorIndex)), true);
+		Sensor->ConfigureSensor(SensorIndex, ZoneId, FName(*FString::Printf(TEXT("Sensor_%02d"), SensorIndex)), true);
 		Sensor->SetSensorState(ZoneId + 1, SensorIndex == 0);
 		ScenarioASensors.Add(Sensor);
 	}

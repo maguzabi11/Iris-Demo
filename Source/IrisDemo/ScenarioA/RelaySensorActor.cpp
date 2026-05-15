@@ -12,13 +12,14 @@ ARelaySensorActor::ARelaySensorActor()
 	SetNetUpdateFrequency(2.0f);
 }
 
-void ARelaySensorActor::ConfigureSensor(int32 NewZoneId, FName NewDebugName, bool bNewScenarioAEnabled)
+void ARelaySensorActor::ConfigureSensor(int32 NewSensorId, int32 NewZoneId, FName NewDebugName, bool bNewScenarioAEnabled)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
 
+	SensorId = NewSensorId;
 	ZoneId = NewZoneId;
 	DebugName = NewDebugName;
 	bScenarioAEnabled = bNewScenarioAEnabled;
@@ -45,6 +46,7 @@ void ARelaySensorActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ARelaySensorActor, SensorId);
 	DOREPLIFETIME(ARelaySensorActor, ZoneId);
 	DOREPLIFETIME(ARelaySensorActor, DebugName);
 	DOREPLIFETIME(ARelaySensorActor, LastUpdateSequence);
@@ -60,13 +62,14 @@ void ARelaySensorActor::OnRep_LastUpdateSequence()
 
 void ARelaySensorActor::LogSensorState(const TCHAR* Reason) const
 {
-	UE_LOG(LogIrisDemo, Log, TEXT("Relay sensor %s: Actor=%s DebugName=%s Zone=%d Sequence=%d Enabled=%s AlertLevel=%d Triggered=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Relay sensor %s: SensorId=%d DebugName=%s Zone=%d Sequence=%d Enabled=%s AlertLevel=%d Triggered=%s Actor=%s"),
 		Reason,
-		*GetName(),
+		SensorId,
 		*DebugName.ToString(),
 		ZoneId,
 		LastUpdateSequence,
 		bScenarioAEnabled ? TEXT("true") : TEXT("false"),
 		AlertLevel,
-		bTriggered ? TEXT("true") : TEXT("false"));
+		bTriggered ? TEXT("true") : TEXT("false"),
+		*GetName());
 }

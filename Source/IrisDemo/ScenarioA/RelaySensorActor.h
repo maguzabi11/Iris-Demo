@@ -15,6 +15,9 @@ public:
 	ARelaySensorActor();
 
 	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
+	int32 GetSensorId() const { return SensorId; }
+
+	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
 	int32 GetZoneId() const { return ZoneId; }
 
 	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
@@ -33,7 +36,7 @@ public:
 	bool IsTriggered() const { return bTriggered; }
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Iris Relay|Scenario A")
-	void ConfigureSensor(int32 NewZoneId, FName NewDebugName, bool bNewScenarioAEnabled);
+	void ConfigureSensor(int32 NewSensorId, int32 NewZoneId, FName NewDebugName, bool bNewScenarioAEnabled);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Iris Relay|Scenario A")
 	void SetSensorState(int32 NewAlertLevel, bool bNewTriggered);
@@ -46,6 +49,9 @@ protected:
 
 private:
 	void LogSensorState(const TCHAR* Reason) const;
+
+	UPROPERTY(Replicated, EditAnywhere, Category = "Iris Relay|Scenario A")
+	int32 SensorId = INDEX_NONE;
 
 	UPROPERTY(Replicated, EditAnywhere, Category = "Iris Relay|Scenario A")
 	int32 ZoneId = 0;

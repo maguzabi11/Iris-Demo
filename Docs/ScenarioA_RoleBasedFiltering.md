@@ -55,10 +55,11 @@ FilteringPolicy(Role, ActorMetadata) -> allow / deny
 - 역할 enum: `Commander`, `FieldAgent`, `Spectator`
 - 역할 저장 위치: `PlayerState` 우선
 - 테스트 replicated actor:
-  - `RelaySensorActor`: 구역 id, alert level, last event sequence
-  - `RelayDroneActor`: 구역 id, battery, state
-  - `RelaySupplyCrateActor`: 구역 id, stock summary
-  - `RelaySquadSummaryActor` 또는 GameState summary: commander/spectator용 요약
+- `RelaySensorActor`: 구역 id, alert level, last event sequence
+- `RelayDroneActor`: 구역 id, battery, state
+- `RelaySupplyCrateActor`: 구역 id, stock summary
+- `RelaySquadSummaryActor` 또는 GameState summary: commander/spectator용 요약
+- 테스트 actor는 데모에서 월드 상 객체로 인식할 수 있도록 최소 visual mesh/component를 가진다.
 - connection별 관심 정책:
   - Commander: 전체 operational summary 허용
   - FieldAgent: 자신의 active zone 또는 거리 기준 actor 허용
@@ -113,6 +114,7 @@ Scenario A actor는 gameplay보다 replication 정책 검증에 집중한다.
 
 공통 속성:
 
+- `SensorId`/`DroneId`/`CrateId` 같은 replicated stable id
 - `ZoneId`
 - `DebugName`
 - `LastUpdateSequence`
@@ -208,6 +210,8 @@ actor별 replicated 속성:
 - [ ] summary actor 또는 GameState summary 작성
 - [x] 서버에서 테스트 actor를 deterministic하게 spawn
 - [x] actor별 replicated property와 `OnRep` 로그 작성
+- [x] 로그/측정용 replicated stable id 작성
+- [ ] `RelaySensorActor`를 월드에서 볼 수 있도록 기본 visual mesh 추가
 - [ ] actor count/zone 배치 seed를 설정으로 분리
 
 완료 기준:
@@ -220,6 +224,8 @@ actor별 replicated 속성:
 - 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공. PIE 복제 확인 예정.
 - 2026-05-15: `AIrisDemoGameMode`가 서버 BeginPlay에서 `ARelaySensorActor` 6개를 zone별 deterministic 위치에 spawn하고 2초마다 상태를 갱신하도록 구현. PIE에서 `Scenario A sensors spawned`, `Relay sensor updated`, `Relay sensor replicated` 로그 확인 예정.
 - 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+- 2026-05-15: 서버/클라이언트의 local `Actor=RelaySensorActor_N` 이름이 서로 다를 수 있음을 PIE 로그로 확인. `ARelaySensorActor`에 replicated `SensorId`를 추가하고 로그 식별 기준을 `SensorId`, `DebugName`, `ZoneId`, `Sequence`로 변경.
+- 2026-05-15: 데모 가시성을 위해 `RelaySensorActor`에 visual mesh/component를 추가하기로 결정. 진행 시점은 `SensorId` 로그 확인 후, `RelayDroneActor`/`RelaySupplyCrateActor` 확장 전으로 둔다.
 
 PIE 확인 방법:
 
@@ -227,7 +233,7 @@ PIE 확인 방법:
 2. Output Log에서 `Scenario A sensors spawned: Count=6` 확인.
 3. 서버 로그에서 `Relay sensor updated`가 2초마다 증가하는지 확인.
 4. 클라이언트 로그에서 `Relay sensor replicated`와 `Sequence` 증가를 확인.
-5. 서버/클라이언트의 `Actor=RelaySensorActor_N` 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated `DebugName`, `ZoneId`, `Sequence`를 사용한다.
+5. 서버/클라이언트의 `Actor=RelaySensorActor_N` 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated `SensorId`, `DebugName`, `ZoneId`, `Sequence`를 사용한다.
 
 ### A3. Baseline 비교 기준
 
