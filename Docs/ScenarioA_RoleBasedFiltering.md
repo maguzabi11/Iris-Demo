@@ -129,6 +129,30 @@ actor별 replicated 속성:
 
 서버는 일정 주기 또는 입력으로 sequence 값을 올리고, 클라이언트는 자신에게 도착한 마지막 sequence를 표시한다.
 
+#### 여러 actor 종류를 두는 이유
+
+`ARelaySensorActor` 하나만으로도 replicated property와 `OnRep` 동작 자체는 확인할 수 있다. 따라서 Sensor/Drone/SupplyCrate/Summary를 나누는 목적은 단순 복제 확인이 아니라, 이후 role-based filtering에서 서로 다른 category의 정보를 다르게 다루기 위한 것이다.
+
+Scenario A의 핵심 판단식은 “이 actor가 복제되는가?”가 아니라 “이 connection role이 이 category/zone/detail 수준의 정보를 받아야 하는가?”이다.
+
+```text
+PlayerRole + ActorCategory + ZoneId + DetailLevel
+-> FilteringPolicy가 해당 connection에 actor를 허용할지 결정
+```
+
+각 actor 종류는 이후 filtering policy의 서로 다른 판단 축을 대표한다.
+
+| Actor | 대표 category | 보여줄 정책 차이 |
+|-------|---------------|------------------|
+| `ARelaySensorActor` | `SensorDetail` | zone별 정적 경보/detail 정보. FieldAgent는 자기 zone 중심, Commander는 전체 또는 요약, Spectator는 상세 제한 |
+| `ARelayDroneActor` | `DroneDetail` | 이동 작전 자산/detail 정보. FieldAgent는 자기 zone 또는 근처 drone, Spectator는 detail 차단, Commander는 전체 자산 상태 또는 summary |
+| `RelaySupplyCrateActor` | `SupplyDetail` | 보급/소유/예약 상태. 이후 owner/squad/zone 조건을 섞기 위한 대상 |
+| Summary actor 또는 GameState summary | `OperationalSummary` | Commander/Spectator가 받을 축약 정보. detail actor를 받지 않아도 전체 상황을 설명할 수 있게 함 |
+
+현재 `ARelayDroneActor`는 아직 `ARelaySensorActor`와 복제 정책상 차이를 보여주는 단계가 아니다. 지금은 여러 actor taxonomy와 replicated metadata를 먼저 깔아두는 단계이며, 실제 차이는 A4에서 Iris filtering policy가 role/category/zone을 기준으로 connection별 허용 대상을 나눌 때 드러난다.
+
+다음 구현에서는 각 actor에 공통 interest metadata를 명시한다. 예를 들어 `SensorDetail`, `DroneDetail`, `SupplyDetail`, `OperationalSummary` 같은 category enum과 summary/detail 구분을 코드에 드러내서, 여러 actor 종류를 둔 의도가 filtering 구현에서도 바로 보이게 한다.
+
 ### 4.3 Filtering 정책
 
 정책은 처음부터 엔진 내부를 과하게 추상화하지 않고, 다음 두 단계로 나눈다.
@@ -323,9 +347,9 @@ PIE 확인 방법:
 
 가장 작은 다음 커밋 후보:
 
-1. `RelaySupplyCrateActor` C++ class 작성
-2. summary actor 또는 GameState summary 작성
-3. actor count/zone 배치 seed 설정 분리
-4. local received actor count 로그 또는 debug UI 준비
+1. Sensor/Drone에 공통 interest metadata 명시: category enum, detail/summary 구분
+2. `RelaySupplyCrateActor` C++ class 작성
+3. summary actor 또는 GameState summary 작성
+4. actor count/zone 배치 seed 설정 분리
 
-다음 커밋부터는 Sensor와 같은 metadata/logging/visual 규칙을 Drone/Crate에도 맞춘다.
+다음 커밋부터는 여러 actor 종류가 단순 복제 샘플이 아니라 filtering policy의 입력 category라는 점이 코드에서도 드러나게 만든다.
