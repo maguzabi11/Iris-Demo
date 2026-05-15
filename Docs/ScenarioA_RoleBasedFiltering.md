@@ -116,6 +116,8 @@ Scenario A actor는 gameplay보다 replication 정책 검증에 집중한다.
 
 - `SensorId`/`DroneId`/`CrateId` 같은 replicated stable id
 - `ZoneId`
+- `InterestCategory`
+- `InterestDetailLevel`
 - `DebugName`
 - `LastUpdateSequence`
 - `bScenarioAEnabled`
@@ -235,6 +237,7 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 - [x] 서버에서 테스트 actor를 deterministic하게 spawn
 - [x] actor별 replicated property와 `OnRep` 로그 작성
 - [x] 로그/측정용 replicated stable id 작성
+- [x] filtering policy 입력용 공통 interest metadata 작성
 - [x] `RelaySensorActor`를 월드에서 볼 수 있도록 기본 visual mesh 추가
 - [ ] actor count/zone 배치 seed를 설정으로 분리
 
@@ -252,6 +255,7 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 - 2026-05-15: 데모 가시성을 위해 `RelaySensorActor`에 visual mesh/component를 추가하기로 결정. 진행 시점은 `SensorId` 로그 확인 후, `RelayDroneActor`/`RelaySupplyCrateActor` 확장 전으로 둔다.
 - 2026-05-15: `ARelaySensorActor`에 기본 cylinder mesh와 text label을 추가. label은 `DebugName`, `SensorId`, `ZoneId`, `AlertLevel`을 표시하고 trigger 상태에서 빨간색으로 바뀐다. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-15: `ARelayDroneActor` 추가. `ZoneId`, `DebugName`, `LastUpdateSequence`, `bScenarioAEnabled`, `BatteryPercent`, `DroneState` 복제와 `OnRep` 로그 작성. `AIrisDemoGameMode`가 drone 3개를 zone별 deterministic 위치에 spawn하고 sensor update timer에서 함께 상태를 갱신하도록 구현. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+- 2026-05-15: `ERelayInterestCategory`, `ERelayInterestDetailLevel` 추가. `ARelaySensorActor`와 `ARelayDroneActor`가 category/detail metadata를 복제하고 로그에 함께 출력하도록 구현. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 PIE 확인 방법:
 
@@ -347,9 +351,9 @@ PIE 확인 방법:
 
 가장 작은 다음 커밋 후보:
 
-1. Sensor/Drone에 공통 interest metadata 명시: category enum, detail/summary 구분
-2. `RelaySupplyCrateActor` C++ class 작성
-3. summary actor 또는 GameState summary 작성
+1. `RelaySupplyCrateActor` C++ class 작성
+2. summary actor 또는 GameState summary 작성
+3. A3 Generic/Iris 실행 인자와 동일 조건 비교 절차 작성
 4. actor count/zone 배치 seed 설정 분리
 
-다음 커밋부터는 여러 actor 종류가 단순 복제 샘플이 아니라 filtering policy의 입력 category라는 점이 코드에서도 드러나게 만든다.
+공통 interest metadata가 들어갔으므로, 다음부터는 Supply/summary까지 category 축을 채우거나 A3의 실행 절차를 먼저 고정한다.

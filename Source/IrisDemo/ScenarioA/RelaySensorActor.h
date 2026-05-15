@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "ScenarioA/RelayInterestTypes.h"
 #include "RelaySensorActor.generated.h"
 
 UCLASS()
@@ -19,6 +20,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
 	int32 GetZoneId() const { return ZoneId; }
+
+	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
+	ERelayInterestCategory GetInterestCategory() const { return InterestCategory; }
+
+	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
+	ERelayInterestDetailLevel GetInterestDetailLevel() const { return InterestDetailLevel; }
 
 	UFUNCTION(BlueprintPure, Category = "Iris Relay|Scenario A")
 	FName GetDebugName() const { return DebugName; }
@@ -66,6 +73,12 @@ private:
 
 	UPROPERTY(Replicated, EditAnywhere, Category = "Iris Relay|Scenario A")
 	int32 ZoneId = 0;
+
+	UPROPERTY(Replicated, VisibleAnywhere, Category = "Iris Relay|Scenario A")
+	ERelayInterestCategory InterestCategory = ERelayInterestCategory::SensorDetail;
+
+	UPROPERTY(Replicated, VisibleAnywhere, Category = "Iris Relay|Scenario A")
+	ERelayInterestDetailLevel InterestDetailLevel = ERelayInterestDetailLevel::Detail;
 
 	UPROPERTY(Replicated, EditAnywhere, Category = "Iris Relay|Scenario A")
 	FName DebugName = FName(TEXT("Sensor"));

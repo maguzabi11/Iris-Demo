@@ -49,6 +49,8 @@ void ARelaySensorActor::ConfigureSensor(int32 NewSensorId, int32 NewZoneId, FNam
 
 	SensorId = NewSensorId;
 	ZoneId = NewZoneId;
+	InterestCategory = ERelayInterestCategory::SensorDetail;
+	InterestDetailLevel = ERelayInterestDetailLevel::Detail;
 	DebugName = NewDebugName;
 	bScenarioAEnabled = bNewScenarioAEnabled;
 	++LastUpdateSequence;
@@ -78,6 +80,8 @@ void ARelaySensorActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 	DOREPLIFETIME(ARelaySensorActor, SensorId);
 	DOREPLIFETIME(ARelaySensorActor, ZoneId);
+	DOREPLIFETIME(ARelaySensorActor, InterestCategory);
+	DOREPLIFETIME(ARelaySensorActor, InterestDetailLevel);
 	DOREPLIFETIME(ARelaySensorActor, DebugName);
 	DOREPLIFETIME(ARelaySensorActor, LastUpdateSequence);
 	DOREPLIFETIME(ARelaySensorActor, bScenarioAEnabled);
@@ -116,11 +120,13 @@ void ARelaySensorActor::RefreshVisualState()
 
 void ARelaySensorActor::LogSensorState(const TCHAR* Reason) const
 {
-	UE_LOG(LogIrisDemo, Log, TEXT("Relay sensor %s: SensorId=%d DebugName=%s Zone=%d Sequence=%d Enabled=%s AlertLevel=%d Triggered=%s Actor=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Relay sensor %s: SensorId=%d DebugName=%s Zone=%d Category=%s DetailLevel=%s Sequence=%d Enabled=%s AlertLevel=%d Triggered=%s Actor=%s"),
 		Reason,
 		SensorId,
 		*DebugName.ToString(),
 		ZoneId,
+		*StaticEnum<ERelayInterestCategory>()->GetNameStringByValue(static_cast<int64>(InterestCategory)),
+		*StaticEnum<ERelayInterestDetailLevel>()->GetNameStringByValue(static_cast<int64>(InterestDetailLevel)),
 		LastUpdateSequence,
 		bScenarioAEnabled ? TEXT("true") : TEXT("false"),
 		AlertLevel,

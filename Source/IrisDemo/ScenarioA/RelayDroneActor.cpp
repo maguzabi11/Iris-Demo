@@ -49,6 +49,8 @@ void ARelayDroneActor::ConfigureDrone(int32 NewDroneId, int32 NewZoneId, FName N
 
 	DroneId = NewDroneId;
 	ZoneId = NewZoneId;
+	InterestCategory = ERelayInterestCategory::DroneDetail;
+	InterestDetailLevel = ERelayInterestDetailLevel::Detail;
 	DebugName = NewDebugName;
 	bScenarioAEnabled = bNewScenarioAEnabled;
 	++LastUpdateSequence;
@@ -78,6 +80,8 @@ void ARelayDroneActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(ARelayDroneActor, DroneId);
 	DOREPLIFETIME(ARelayDroneActor, ZoneId);
+	DOREPLIFETIME(ARelayDroneActor, InterestCategory);
+	DOREPLIFETIME(ARelayDroneActor, InterestDetailLevel);
 	DOREPLIFETIME(ARelayDroneActor, DebugName);
 	DOREPLIFETIME(ARelayDroneActor, LastUpdateSequence);
 	DOREPLIFETIME(ARelayDroneActor, bScenarioAEnabled);
@@ -117,11 +121,13 @@ void ARelayDroneActor::RefreshVisualState()
 
 void ARelayDroneActor::LogDroneState(const TCHAR* Reason) const
 {
-	UE_LOG(LogIrisDemo, Log, TEXT("Relay drone %s: DroneId=%d DebugName=%s Zone=%d Sequence=%d Enabled=%s Battery=%d State=%s Actor=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Relay drone %s: DroneId=%d DebugName=%s Zone=%d Category=%s DetailLevel=%s Sequence=%d Enabled=%s Battery=%d State=%s Actor=%s"),
 		Reason,
 		DroneId,
 		*DebugName.ToString(),
 		ZoneId,
+		*StaticEnum<ERelayInterestCategory>()->GetNameStringByValue(static_cast<int64>(InterestCategory)),
+		*StaticEnum<ERelayInterestDetailLevel>()->GetNameStringByValue(static_cast<int64>(InterestDetailLevel)),
 		LastUpdateSequence,
 		bScenarioAEnabled ? TEXT("true") : TEXT("false"),
 		BatteryPercent,
