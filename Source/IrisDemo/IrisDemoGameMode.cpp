@@ -10,6 +10,7 @@
 #include "Iris/ReplicationSystem/ReplicationSystem.h"
 #include "IrisDemo.h"
 #include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/Parse.h"
 #include "Net/Iris/ReplicationSystem/ReplicationSystemUtil.h"
 #include "Engine/NetConnection.h"
@@ -23,6 +24,8 @@
 namespace
 {
 constexpr int32 ScenarioAZoneCount = 3;
+const TCHAR* ScenarioAGameModeConfigSection = TEXT("/Script/IrisDemo.IrisDemoGameMode");
+const TCHAR* ScenarioAEnableRoleFilteringConfigKey = TEXT("bScenarioAEnableRoleFiltering");
 
 FString GetIrisReplicationModeLabel()
 {
@@ -106,6 +109,11 @@ bool TryReadScenarioABoolOption(const FString& Options, const TCHAR* OptionName,
 
 	OutValue = RawValue.Equals(TEXT("1")) || RawValue.Equals(TEXT("true"), ESearchCase::IgnoreCase) || RawValue.Equals(TEXT("yes"), ESearchCase::IgnoreCase);
 	return true;
+}
+
+bool TryReadScenarioABoolConfig(const TCHAR* SectionName, const TCHAR* OptionName, bool& OutValue)
+{
+	return GConfig && GConfig->GetBool(SectionName, OptionName, OutValue, GGameIni);
 }
 
 int32 NormalizeScenarioAZoneId(int32 ZoneId)
@@ -754,13 +762,22 @@ void AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering()
 
 void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 {
+	const TCHAR* RoleFilteringSource = TEXT("Default");
+	if (TryReadScenarioABoolConfig(ScenarioAGameModeConfigSection, ScenarioAEnableRoleFilteringConfigKey, bScenarioAEnableRoleFiltering))
+	{
+		RoleFilteringSource = TEXT("DefaultGame.ini");
+	}
+
 	TryReadScenarioAIntOption(Options, TEXT("ScenarioASeed"), ScenarioASeed);
 	TryReadScenarioAIntOption(Options, TEXT("ScenarioASensorCount"), ScenarioASensorCount);
 	TryReadScenarioAIntOption(Options, TEXT("ScenarioADroneCount"), ScenarioADroneCount);
 	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration);
-	TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering);
+	if (TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering))
+	{
+		RoleFilteringSource = TEXT("RuntimeOption");
+	}
 
 	ScenarioASeed = FMath::Max(0, ScenarioASeed);
 	ScenarioASensorCount = FMath::Max(0, ScenarioASensorCount);
@@ -768,6 +785,11 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	ScenarioASupplyCrateCount = FMath::Max(0, ScenarioASupplyCrateCount);
 	ScenarioASensorUpdateInterval = FMath::Max(0.1f, ScenarioASensorUpdateInterval);
 	ScenarioARunDuration = FMath::Max(0.0f, ScenarioARunDuration);
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: Options=\"%s\" RoleFiltering=%s RoleFilteringSource=%s"),
+		*Options,
+		bScenarioAEnableRoleFiltering ? TEXT("Enabled") : TEXT("Disabled"),
+		RoleFilteringSource);
 }
 
 void AIrisDemoGameMode::LogScenarioABaselineConfig() const

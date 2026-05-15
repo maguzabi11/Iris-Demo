@@ -137,6 +137,7 @@ Scenario A의 첫 A4 구현은 custom `UNetObjectFilter` 대신 exclusion group�
 - group filtering은 Iris `UReplicationSystem`이 있을 때만 적용된다.
 - Generic replication 비교를 유지하려면 filtering 옵션을 별도로 두는 편이 안전하다.
 - filter group에서 object가 제외되면 remote side의 해당 object가 destroy될 수 있으므로, baseline 측정과 filtering 측정은 옵션을 분리해 실행한다.
+- PIE 실행 설정의 URL option이 GameMode `InitGame`의 `Options`까지 전달되지 않을 수 있다. Scenario A의 role filtering opt-in은 `Config/DefaultGame.ini`의 `[/Script/IrisDemo.IrisDemoGameMode] bScenarioAEnableRoleFiltering=True`로도 켤 수 있고, 실제 URL/command line option이 전달되면 그 값이 ini 값을 덮어쓴다.
 
 ## 6. Prioritization
 
