@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "ScenarioA/RelayOperatorRole.h"
+#include "TimerManager.h"
 #include "IrisDemoGameMode.generated.h"
+
+class ARelaySensorActor;
 
 /**
  *  Simple GameMode for a third person game
@@ -21,6 +24,10 @@ public:
 	AIrisDemoGameMode();
 
 protected:
+	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 
 	virtual void PostLogin(APlayerController* NewPlayer) override;
@@ -30,6 +37,23 @@ private:
 
 	ERelayOperatorRole GetNextScenarioARole();
 
-	int32 NextScenarioARoleIndex = 0;
-};
+	void SpawnScenarioASensors();
 
+	void UpdateScenarioASensors();
+
+	int32 NextScenarioARoleIndex = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
+	TSubclassOf<ARelaySensorActor> ScenarioASensorClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0"))
+	int32 ScenarioASensorCount = 6;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.1"))
+	float ScenarioASensorUpdateInterval = 2.0f;
+
+	UPROPERTY()
+	TArray<TObjectPtr<ARelaySensorActor>> ScenarioASensors;
+
+	FTimerHandle ScenarioASensorUpdateTimerHandle;
+};

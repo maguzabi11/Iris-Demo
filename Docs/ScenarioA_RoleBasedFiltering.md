@@ -188,7 +188,7 @@ actor별 replicated 속성:
 - [x] 서버 권위 역할 할당 함수 작성
 - [x] 클라이언트에서 현재 역할 확인 가능
 - [x] 역할 변경 시 로그 출력
-- [ ] 2 client 이상 PIE에서 역할이 다르게 보이는지 확인
+- [x] 2 client 이상 PIE에서 역할이 다르게 보이는지 확인
 
 완료 기준:
 
@@ -198,21 +198,36 @@ actor별 replicated 속성:
 
 - 2026-05-15: `ARelayPlayerState`와 접속 순서 기반 `PostLogin` 역할 할당 구현
 - 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공
-- 남은 확인: 2 client 이상 PIE에서 실제 클라이언트별 role 로그 확인
+- 2026-05-15: 사용자 제공 PIE 로그에서 Commander/FieldAgent role replicated 및 local ready 로그 확인
 
 ### A2. Scenario A 테스트 actor
 
-- [ ] `RelaySensorActor` C++ class 작성
+- [x] `RelaySensorActor` C++ class 작성
 - [ ] `RelayDroneActor` C++ class 작성
 - [ ] `RelaySupplyCrateActor` C++ class 작성
 - [ ] summary actor 또는 GameState summary 작성
-- [ ] 서버에서 테스트 actor를 deterministic하게 spawn
-- [ ] actor별 replicated property와 `OnRep` 로그 작성
+- [x] 서버에서 테스트 actor를 deterministic하게 spawn
+- [x] actor별 replicated property와 `OnRep` 로그 작성
 - [ ] actor count/zone 배치 seed를 설정으로 분리
 
 완료 기준:
 
 - 서버 1개, 클라이언트 2개 이상에서 actor 상태 변경 sequence가 클라이언트에 복제된다.
+
+검증 메모:
+
+- 2026-05-15: `ARelaySensorActor` 추가. `ZoneId`, `DebugName`, `LastUpdateSequence`, `bScenarioAEnabled`, `AlertLevel`, `bTriggered` 복제와 `OnRep` 로그 작성.
+- 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공. PIE 복제 확인 예정.
+- 2026-05-15: `AIrisDemoGameMode`가 서버 BeginPlay에서 `ARelaySensorActor` 6개를 zone별 deterministic 위치에 spawn하고 2초마다 상태를 갱신하도록 구현. PIE에서 `Scenario A sensors spawned`, `Relay sensor updated`, `Relay sensor replicated` 로그 확인 예정.
+- 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+
+PIE 확인 방법:
+
+1. ThirdPerson 맵에서 listen server + 2 clients PIE 실행.
+2. Output Log에서 `Scenario A sensors spawned: Count=6` 확인.
+3. 서버 로그에서 `Relay sensor updated`가 2초마다 증가하는지 확인.
+4. 클라이언트 로그에서 `Relay sensor replicated`와 `Sequence` 증가를 확인.
+5. 서버/클라이언트의 `Actor=RelaySensorActor_N` 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated `DebugName`, `ZoneId`, `Sequence`를 사용한다.
 
 ### A3. Baseline 비교 기준
 
