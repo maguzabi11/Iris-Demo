@@ -205,7 +205,7 @@ actor별 replicated 속성:
 ### A2. Scenario A 테스트 actor
 
 - [x] `RelaySensorActor` C++ class 작성
-- [ ] `RelayDroneActor` C++ class 작성
+- [x] `RelayDroneActor` C++ class 작성
 - [ ] `RelaySupplyCrateActor` C++ class 작성
 - [ ] summary actor 또는 GameState summary 작성
 - [x] 서버에서 테스트 actor를 deterministic하게 spawn
@@ -227,14 +227,15 @@ actor별 replicated 속성:
 - 2026-05-15: 서버/클라이언트의 local `Actor=RelaySensorActor_N` 이름이 서로 다를 수 있음을 PIE 로그로 확인. `ARelaySensorActor`에 replicated `SensorId`를 추가하고 로그 식별 기준을 `SensorId`, `DebugName`, `ZoneId`, `Sequence`로 변경.
 - 2026-05-15: 데모 가시성을 위해 `RelaySensorActor`에 visual mesh/component를 추가하기로 결정. 진행 시점은 `SensorId` 로그 확인 후, `RelayDroneActor`/`RelaySupplyCrateActor` 확장 전으로 둔다.
 - 2026-05-15: `ARelaySensorActor`에 기본 cylinder mesh와 text label을 추가. label은 `DebugName`, `SensorId`, `ZoneId`, `AlertLevel`을 표시하고 trigger 상태에서 빨간색으로 바뀐다. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+- 2026-05-15: `ARelayDroneActor` 추가. `ZoneId`, `DebugName`, `LastUpdateSequence`, `bScenarioAEnabled`, `BatteryPercent`, `DroneState` 복제와 `OnRep` 로그 작성. `AIrisDemoGameMode`가 drone 3개를 zone별 deterministic 위치에 spawn하고 sensor update timer에서 함께 상태를 갱신하도록 구현. UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 PIE 확인 방법:
 
 1. ThirdPerson 맵에서 listen server + 2 clients PIE 실행.
-2. Output Log에서 `Scenario A sensors spawned: Count=6` 확인.
-3. 서버 로그에서 `Relay sensor updated`가 2초마다 증가하는지 확인.
-4. 클라이언트 로그에서 `Relay sensor replicated`와 `Sequence` 증가를 확인.
-5. 서버/클라이언트의 `Actor=RelaySensorActor_N` 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated `SensorId`, `DebugName`, `ZoneId`, `Sequence`를 사용한다.
+2. Output Log에서 `Scenario A sensors spawned: Count=6`, `Scenario A drones spawned: Count=3` 확인.
+3. 서버 로그에서 `Relay sensor updated`, `Relay drone updated`가 2초마다 증가하는지 확인.
+4. 클라이언트 로그에서 `Relay sensor replicated`, `Relay drone replicated`와 `Sequence` 증가를 확인.
+5. 서버/클라이언트의 `Actor=RelaySensorActor_N`, `Actor=RelayDroneActor_N` 이름은 서로 다를 수 있으므로, 로그 비교 식별자는 replicated stable id, `DebugName`, `ZoneId`, `Sequence`를 사용한다.
 
 ### A3. Baseline 비교 기준
 
@@ -322,9 +323,9 @@ PIE 확인 방법:
 
 가장 작은 다음 커밋 후보:
 
-1. `RelayDroneActor` C++ class 작성
-2. `RelaySupplyCrateActor` C++ class 작성
-3. summary actor 또는 GameState summary 작성
-4. actor count/zone 배치 seed 설정 분리
+1. `RelaySupplyCrateActor` C++ class 작성
+2. summary actor 또는 GameState summary 작성
+3. actor count/zone 배치 seed 설정 분리
+4. local received actor count 로그 또는 debug UI 준비
 
 다음 커밋부터는 Sensor와 같은 metadata/logging/visual 규칙을 Drone/Crate에도 맞춘다.

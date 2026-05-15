@@ -4,6 +4,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "IrisDemo.h"
+#include "ScenarioA/RelayDroneActor.h"
 #include "ScenarioA/RelayPlayerState.h"
 #include "ScenarioA/RelaySensorActor.h"
 #include "TimerManager.h"
@@ -12,6 +13,7 @@ AIrisDemoGameMode::AIrisDemoGameMode()
 {
 	EnsureScenarioAPlayerStateClass();
 	ScenarioASensorClass = ARelaySensorActor::StaticClass();
+	ScenarioADroneClass = ARelayDroneActor::StaticClass();
 }
 
 void AIrisDemoGameMode::BeginPlay()
@@ -19,8 +21,9 @@ void AIrisDemoGameMode::BeginPlay()
 	Super::BeginPlay();
 
 	SpawnScenarioASensors();
+	SpawnScenarioADrones();
 
-	if (ScenarioASensors.Num() > 0 && ScenarioASensorUpdateInterval > 0.0f)
+	if ((ScenarioASensors.Num() > 0 || ScenarioADrones.Num() > 0) && ScenarioASensorUpdateInterval > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(
 			ScenarioASensorUpdateTimerHandle,
@@ -153,5 +156,89 @@ void AIrisDemoGameMode::UpdateScenarioASensors()
 		const int32 NextAlertLevel = (Sensor->GetAlertLevel() + 1 + SensorIndex) % 5;
 		const bool bNextTriggered = NextAlertLevel >= 3;
 		Sensor->SetSensorState(NextAlertLevel, bNextTriggered);
+	}
+
+	UpdateScenarioADrones();
+}
+
+void AIrisDemoGameMode::SpawnScenarioADrones()
+{
+	if (!HasAuthority() || !ScenarioADroneClass || ScenarioADroneCount <= 0)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	ScenarioADrones.Reset();
+
+	for (int32 DroneIndex = 0; DroneIndex < ScenarioADroneCount; ++DroneIndex)
+	{
+		const int32 ZoneId = DroneIndex % 3;
+		const FVector SpawnLocation(
+			static_cast<double>(ZoneId) * 450.0,
+			-300.0,
+			260.0 + static_cast<double>(DroneIndex) * 30.0);
+		const FRotator SpawnRotation(0.0, 45.0 * static_cast<double>(DroneIndex), 0.0);
+
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		ARelayDroneActor* Drone = World->SpawnActor<ARelayDroneActor>(
+			ScenarioADroneClass,
+			SpawnLocation,
+			SpawnRotation,
+			SpawnParameters);
+
+		if (!Drone)
+		{
+			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A drone spawn failed: Index=%d Zone=%d"), DroneIndex, ZoneId);
+			continue;
+		}
+
+		Drone->ConfigureDrone(DroneIndex, ZoneId, FName(*FString::Printf(TEXT("Drone_%02d"), DroneIndex)), true);
+		Drone->SetDroneState(100 - DroneIndex * 15, EDroneRelayState::Patrol);
+		ScenarioADrones.Add(Drone);
+	}
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A drones spawned: Count=%d"), ScenarioADrones.Num());
+}
+
+void AIrisDemoGameMode::UpdateScenarioADrones()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	for (int32 DroneIndex = 0; DroneIndex < ScenarioADrones.Num(); ++DroneIndex)
+	{
+		ARelayDroneActor* Drone = ScenarioADrones[DroneIndex];
+		if (!IsValid(Drone) || !Drone->IsScenarioAEnabled())
+		{
+			continue;
+		}
+
+		const int32 NextBattery = (Drone->GetBatteryPercent() <= 10) ? 100 : Drone->GetBatteryPercent() - (5 + DroneIndex);
+		EDroneRelayState NextState = EDroneRelayState::Patrol;
+		if (NextBattery <= 15)
+		{
+			NextState = EDroneRelayState::Disabled;
+		}
+		else if (NextBattery <= 35)
+		{
+			NextState = EDroneRelayState::Returning;
+		}
+		else if ((DroneIndex + NextBattery) % 3 == 0)
+		{
+			NextState = EDroneRelayState::Investigating;
+		}
+
+		Drone->SetDroneState(NextBattery, NextState);
 	}
 }

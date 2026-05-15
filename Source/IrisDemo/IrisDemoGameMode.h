@@ -9,6 +9,7 @@
 #include "IrisDemoGameMode.generated.h"
 
 class ARelaySensorActor;
+class ARelayDroneActor;
 
 /**
  *  Simple GameMode for a third person game
@@ -41,6 +42,10 @@ private:
 
 	void UpdateScenarioASensors();
 
+	void SpawnScenarioADrones();
+
+	void UpdateScenarioADrones();
+
 	int32 NextScenarioARoleIndex = 0;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
@@ -52,8 +57,17 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.1"))
 	float ScenarioASensorUpdateInterval = 2.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
+	TSubclassOf<ARelayDroneActor> ScenarioADroneClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0"))
+	int32 ScenarioADroneCount = 3;
+
 	UPROPERTY()
 	TArray<TObjectPtr<ARelaySensorActor>> ScenarioASensors;
+
+	UPROPERTY()
+	TArray<TObjectPtr<ARelayDroneActor>> ScenarioADrones;
 
 	FTimerHandle ScenarioASensorUpdateTimerHandle;
 };
