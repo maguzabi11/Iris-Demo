@@ -156,7 +156,8 @@ UE::Net::FNetObjectGroupHandle GetOrCreateScenarioAExclusionGroup(UReplicationSy
 	return GroupHandle;
 }
 
-void AddActorToScenarioAFilterGroup(UReplicationSystem& ReplicationSystem, UObjectReplicationBridge& ReplicationBridge, const AActor* Actor, UE::Net::FNetObjectGroupHandle GroupHandle, FName GroupName)
+void AddActorToScenarioAFilterGroup(UReplicationSystem& ReplicationSystem, UObjectReplicationBridge& ReplicationBridge,
+	const AActor* Actor, UE::Net::FNetObjectGroupHandle GroupHandle, FName GroupName)
 {
 	if (!Actor || !ReplicationSystem.IsValidGroup(GroupHandle))
 	{

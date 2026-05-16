@@ -18,36 +18,36 @@
 
 namespace
 {
-FString GetIrisReplicationModeLabel()
-{
-	const IConsoleVariable* UseIrisCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Iris.UseIrisReplication"));
-	if (!UseIrisCVar)
+	FString GetIrisReplicationModeLabel()
 	{
-		return TEXT("Unknown");
-	}
-
-	return UseIrisCVar->GetInt() != 0 ? TEXT("Iris") : TEXT("Generic");
-}
-
-template <typename TActorType>
-int32 CountScenarioAActors(UWorld* World)
-{
-	if (!World)
-	{
-		return 0;
-	}
-
-	int32 Count = 0;
-	for (TActorIterator<TActorType> It(World); It; ++It)
-	{
-		if (IsValid(*It))
+		const IConsoleVariable* UseIrisCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Iris.UseIrisReplication"));
+		if (!UseIrisCVar)
 		{
-			++Count;
+			return TEXT("Unknown");
 		}
+
+		return UseIrisCVar->GetInt() != 0 ? TEXT("Iris") : TEXT("Generic");
 	}
 
-	return Count;
-}
+	template <typename TActorType>
+	int32 CountScenarioAActors(UWorld* World)
+	{
+		if (!World)
+		{
+			return 0;
+		}
+
+		int32 Count = 0;
+		for (TActorIterator<TActorType> It(World); It; ++It)
+		{
+			if (IsValid(*It))
+			{
+				++Count;
+			}
+		}
+
+		return Count;
+	}
 }
 
 void AIrisDemoPlayerController::BeginPlay()
