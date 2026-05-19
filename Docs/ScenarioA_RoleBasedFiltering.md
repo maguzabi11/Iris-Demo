@@ -316,7 +316,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - [x] 같은 seed/count/duration으로 실행하는 절차 작성
 - [ ] Generic mode에서 역할별 수신 actor count 기록
 - [ ] Iris mode에서 역할별 수신 actor count 기록
-- [ ] 비교 결과를 `Docs/ScenarioA_RoleBasedFiltering.md`에 기록
+- [x] 비교 결과를 `Docs/ScenarioA_RoleBasedFiltering.md`에 기록
 
 완료 기준:
 
@@ -328,6 +328,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 2026-05-15: `IrisRelayLogBaselineSnapshot` console command 추가. 각 local client에서 현재 role, Generic/Iris mode, sensor/drone/supply crate 수신 수, detail actor total을 로그로 남긴다.
 - 2026-05-15: UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-15: A4 구현 이후에도 `ScenarioAEnableRoleFiltering=0`을 명시하면 A3 baseline control run을 이어갈 수 있도록 유지했다. snapshot 로그에는 role zone과 summary count가 추가되었다.
+- 2026-05-19: 사용자 제공 Commander snapshot 기준으로 Generic/Iris 모두 `SensorCount=6`, `DroneCount=3`, `SupplyCrateCount=3`, `SummaryCount=1`, `DetailActorTotal=12`를 확인했다. Generic은 `DetailMax=11`, Iris는 `DetailMax=4`로 측정 시점은 다르지만 actor count와 zone 분포는 동일했다. FieldAgent/Spectator snapshot은 아직 미측정이다. `Tools\BuildEditor.bat`로 UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 ### A4. Role-Based Filtering 구현
 
@@ -408,8 +409,8 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 | 날짜 | 모드 | 서버 형태 | 클라이언트 수 | Seed | Commander 수신 | FieldAgent 수신 | Spectator 수신 | 메모 |
 |------|------|-----------|---------------|------|-----------------|------------------|-----------------|------|
-| - | Generic | - | - | - | - | - | - | 아직 미측정 |
-| - | Iris | - | - | - | - | - | - | 아직 미측정 |
+| 2026-05-19 | Generic | PIE, 형태 미기록 | Commander snapshot 1개 | 1001 | Detail=12, Summary=1, Seq=11 | 미측정 | 미측정 | SensorZones=2/2/2, DroneZones=1/1/1, SupplyCrateZones=1/1/1 |
+| 2026-05-19 | Iris | PIE, 형태 미기록 | Commander snapshot 1개 | 1001 | Detail=12, Summary=1, Seq=4 | 미측정 | 미측정 | SensorZones=2/2/2, DroneZones=1/1/1, SupplyCrateZones=1/1/1 |
 
 ## 7. 결정 로그
 
