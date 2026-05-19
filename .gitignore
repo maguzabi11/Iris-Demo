@@ -3,6 +3,7 @@
 .codex/
 .idea/
 .vs/
+.sisyphus/
 Docs/학습/
 
 # Unreal Engine generated folders
