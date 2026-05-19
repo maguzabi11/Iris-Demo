@@ -192,6 +192,54 @@ AIrisDemoGameMode::AIrisDemoGameMode()
 	ScenarioAOperationalSummaryClass = ARelayOperationalSummaryActor::StaticClass();
 }
 
+void AIrisDemoGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	EnsureScenarioAPlayerStateClass();
+	ApplyScenarioAOptions(Options);
+
+	Super::InitGame(MapName, Options, ErrorMessage);
+}
+
+void AIrisDemoGameMode::EnsureScenarioAPlayerStateClass()
+{
+	if (!PlayerStateClass || !PlayerStateClass->IsChildOf(ARelayPlayerState::StaticClass()))
+	{
+		PlayerStateClass = ARelayPlayerState::StaticClass();
+	}
+}
+
+void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
+{
+	const TCHAR* RoleFilteringSource = TEXT("Default");
+	if (TryReadScenarioABoolConfig(ScenarioAGameModeConfigSection, ScenarioAEnableRoleFilteringConfigKey, bScenarioAEnableRoleFiltering))
+	{
+		RoleFilteringSource = TEXT("DefaultGame.ini");
+	}
+
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioASeed"), ScenarioASeed);
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioASensorCount"), ScenarioASensorCount);
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioADroneCount"), ScenarioADroneCount);
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount);
+	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval);
+	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration);
+	if (TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering))
+	{
+		RoleFilteringSource = TEXT("RuntimeOption");
+	}
+
+	ScenarioASeed = FMath::Max(0, ScenarioASeed);
+	ScenarioASensorCount = FMath::Max(0, ScenarioASensorCount);
+	ScenarioADroneCount = FMath::Max(0, ScenarioADroneCount);
+	ScenarioASupplyCrateCount = FMath::Max(0, ScenarioASupplyCrateCount);
+	ScenarioASensorUpdateInterval = FMath::Max(0.1f, ScenarioASensorUpdateInterval);
+	ScenarioARunDuration = FMath::Max(0.0f, ScenarioARunDuration);
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: Options=\"%s\" RoleFiltering=%s RoleFilteringSource=%s"),
+		*Options,
+		bScenarioAEnableRoleFiltering ? TEXT("Enabled") : TEXT("Disabled"),
+		RoleFilteringSource);
+}
+
 void AIrisDemoGameMode::BeginPlay()
 {
 	Super::BeginPlay();
@@ -233,14 +281,6 @@ void AIrisDemoGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AIrisDemoGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
-{
-	EnsureScenarioAPlayerStateClass();
-	ApplyScenarioAOptions(Options);
-
-	Super::InitGame(MapName, Options, ErrorMessage);
-}
-
 void AIrisDemoGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
@@ -262,14 +302,6 @@ void AIrisDemoGameMode::PostLogin(APlayerController* NewPlayer)
 	UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role assignment skipped: PlayerStateClass=%s Player=%s"),
 		PlayerStateClass ? *PlayerStateClass->GetName() : TEXT("None"),
 		*NewPlayer->GetName());
-}
-
-void AIrisDemoGameMode::EnsureScenarioAPlayerStateClass()
-{
-	if (!PlayerStateClass || !PlayerStateClass->IsChildOf(ARelayPlayerState::StaticClass()))
-	{
-		PlayerStateClass = ARelayPlayerState::StaticClass();
-	}
 }
 
 ERelayOperatorRole AIrisDemoGameMode::GetNextScenarioARole()
@@ -748,38 +780,6 @@ void AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering()
 			ShouldScenarioAConnectionReceiveDetailZone(OperatorRole, AssignedZoneId, 1) ? TEXT("Allow") : TEXT("Disallow"),
 			ShouldScenarioAConnectionReceiveDetailZone(OperatorRole, AssignedZoneId, 2) ? TEXT("Allow") : TEXT("Disallow"));
 	}
-}
-
-void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
-{
-	const TCHAR* RoleFilteringSource = TEXT("Default");
-	if (TryReadScenarioABoolConfig(ScenarioAGameModeConfigSection, ScenarioAEnableRoleFilteringConfigKey, bScenarioAEnableRoleFiltering))
-	{
-		RoleFilteringSource = TEXT("DefaultGame.ini");
-	}
-
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASeed"), ScenarioASeed);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASensorCount"), ScenarioASensorCount);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioADroneCount"), ScenarioADroneCount);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration);
-	if (TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering))
-	{
-		RoleFilteringSource = TEXT("RuntimeOption");
-	}
-
-	ScenarioASeed = FMath::Max(0, ScenarioASeed);
-	ScenarioASensorCount = FMath::Max(0, ScenarioASensorCount);
-	ScenarioADroneCount = FMath::Max(0, ScenarioADroneCount);
-	ScenarioASupplyCrateCount = FMath::Max(0, ScenarioASupplyCrateCount);
-	ScenarioASensorUpdateInterval = FMath::Max(0.1f, ScenarioASensorUpdateInterval);
-	ScenarioARunDuration = FMath::Max(0.0f, ScenarioARunDuration);
-
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: Options=\"%s\" RoleFiltering=%s RoleFilteringSource=%s"),
-		*Options,
-		bScenarioAEnableRoleFiltering ? TEXT("Enabled") : TEXT("Disabled"),
-		RoleFilteringSource);
 }
 
 void AIrisDemoGameMode::LogScenarioABaselineConfig() const
