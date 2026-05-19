@@ -7,7 +7,6 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
-#include "HAL/IConsoleManager.h"
 #include "IrisDemo.h"
 #include "ScenarioA/RelayDroneActor.h"
 #include "ScenarioA/RelayOperationalSummaryActor.h"
@@ -18,17 +17,6 @@
 
 namespace
 {
-	FString GetIrisReplicationModeLabel()
-	{
-		const IConsoleVariable* UseIrisCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Iris.UseIrisReplication"));
-		if (!UseIrisCVar)
-		{
-			return TEXT("Unknown");
-		}
-
-		return UseIrisCVar->GetInt() != 0 ? TEXT("Iris") : TEXT("Generic");
-	}
-
 	template <typename TActorType>
 	int32 CountScenarioAActors(UWorld* World)
 	{

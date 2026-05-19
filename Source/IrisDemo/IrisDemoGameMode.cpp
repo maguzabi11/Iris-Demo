@@ -27,17 +27,6 @@ constexpr int32 ScenarioAZoneCount = 3;
 const TCHAR* ScenarioAGameModeConfigSection = TEXT("/Script/IrisDemo.IrisDemoGameMode");
 const TCHAR* ScenarioAEnableRoleFilteringConfigKey = TEXT("bScenarioAEnableRoleFiltering");
 
-FString GetIrisReplicationModeLabel()
-{
-	const IConsoleVariable* UseIrisCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Iris.UseIrisReplication"));
-	if (!UseIrisCVar)
-	{
-		return TEXT("Unknown");
-	}
-
-	return UseIrisCVar->GetInt() != 0 ? TEXT("Iris") : TEXT("Generic");
-}
-
 bool IsIrisReplicationEnabled()
 {
 	const IConsoleVariable* UseIrisCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Iris.UseIrisReplication"));
