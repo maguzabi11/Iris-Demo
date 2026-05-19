@@ -363,8 +363,8 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 - [x] 현재 role 표시
 - [x] local received sensor/drone/crate count 표시
-- [ ] zone별 received count 표시
-- [ ] last sequence 표시
+- [x] zone별 received count 표시
+- [x] last sequence 표시
 - [x] Generic/Iris mode 표시
 - [x] server summary log 출력
 - [x] 결과 캡처용 console command 또는 key binding 작성
@@ -372,6 +372,10 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 완료 기준:
 
 - 에디터 PIE 화면 또는 로그만 보고도 역할별 관심 필터링 결과를 설명할 수 있다.
+
+검증 메모:
+
+- 2026-05-19: `IrisRelayLogBaselineSnapshot` 로그에 `SensorZones`, `DroneZones`, `SupplyCrateZones`와 `LastSequences`를 추가했다. 각 local client에서 실제 수신한 detail actor의 zone 분포와 마지막 수신 sequence를 한 줄로 기록하므로 A3/A4 PIE 결과 표 작성에 바로 사용할 수 있다. `Tools\BuildEditor.bat`로 UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 
 ### A6. 검증
 
@@ -425,6 +429,6 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 1. `ScenarioAEnableRoleFiltering=1`로 listen server + 3 clients PIE 실행 후 Commander/FieldAgent/Spectator actual count 기록
 2. A3 Generic/Iris 실제 실행 결과 기록
 3. FieldAgent distance 기준 또는 role 변경 console command 추가
-4. zone별 received count와 last sequence 로그 또는 debug UI 준비
+4. Spectator summary update cadence 지연 처리
 
 detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 골격도 빌드 검증했다. 다음부터는 PIE에서 옵션 off/on 결과를 각각 표에 채우는 것이 가장 작고 확인 가능한 단위다.
