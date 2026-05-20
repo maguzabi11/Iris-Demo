@@ -67,6 +67,8 @@
 
 > 대규모 수치만 보여주는 벤치마크가 아니라, 실제 멀티플레이 게임에서 생기는 “누가 무엇을 언제 받아야 하는가” 문제를 Iris Filtering, Prioritization, Push Model, Subobject Replication, Seamless Travel로 해결한다.
 
+포트폴리오 관점의 상위 목표는 [Portfolio_Performance_Debugging_Plan.md](./Portfolio_Performance_Debugging_Plan.md)에서 별도로 관리한다. 이 프로젝트의 목표는 “Iris 기능을 써봤다”가 아니라, 같은 조건의 Generic/Iris 실행을 구성하고 로그/프로파일링/NetTrace로 결과를 검증할 수 있음을 보여주는 것이다.
+
 ### 데모 콘셉트
 
 플레이어는 협동 작전의 지휘/현장 요원이다. 맵에는 드론, 센서, 보급 상자, 목표 장치, 경보 이벤트가 있고, 각 클라이언트는 자기 역할과 위치에 따라 다른 네트워크 데이터를 받아야 한다.
@@ -78,6 +80,13 @@
 - 관심 없는 센서/드론 상태를 필터링해서 bandwidth와 replication work가 줄어드는가?
 - 중요한 경보와 목표 장치는 낮은 빈도 상태보다 우선 복제되는가?
 - Lobby -> Operation -> Debrief 이동 중 PlayerState, loadout, inventory가 유지되는가?
+
+추가로 다음 엔지니어링 질문을 계속 유지한다.
+
+- 같은 seed/count/duration 조건에서 Generic/Iris 비교가 성립하는가?
+- PIE, command line, ini, dedicated server 실행 경로가 같은 결과를 재현하는가?
+- actor count 외에 bandwidth, replicated object count, relevant object count를 남길 수 있는가?
+- 결과가 기대와 다를 때 어떤 로그와 프로파일링 자료로 원인을 좁힐 수 있는가?
 
 ### 맵 구성
 
@@ -277,6 +286,8 @@ net.Iris.PushModelMode=1
 
 ## 7. 측정 지표
 
+세부 측정/디버깅 보강 계획은 [Portfolio_Performance_Debugging_Plan.md](./Portfolio_Performance_Debugging_Plan.md)를 따른다.
+
 - Server Frame Time
 - NetBroadcastTickTime
 - Outgoing Bandwidth
@@ -307,10 +318,10 @@ net.Iris.PushModelMode=1
 
 ## 9. 다음 단계
 
-1. UE 5.7.1 C++ 프로젝트 생성 및 Iris plugin 활성화
-2. Lobby/Operation/Debrief 빈 맵과 travel flow 구현
-3. Generic/Iris 실행 설정을 분리한 테스트 런처 작성
-4. `RelayNetStatsSubsystem`으로 run metadata와 핵심 수치 기록
-5. Scenario A의 role-based filtering부터 구현
-6. Scenario C의 UObject loadout/cargo를 최소 기능으로 연결
-7. Scenario B/D/E를 순차 확장
+1. Scenario A를 dedicated server + 3 clients에서 재검증하고 서버 형태/옵션 적용 경로를 문서화
+2. Generic/Iris run metadata를 csv/json으로 저장하는 최소 측정 하네스 작성
+3. Unreal Insights / CSV Profiling / NetTrace 수집 경로를 정리하고 `PerformanceRuns.md`에 결과 기록
+4. Scenario A의 A7 마무리 문서화 완료
+5. Scenario C의 UObject loadout/cargo를 최소 기능으로 연결
+6. Scenario B의 prioritization/push model을 성능 측정과 연결
+7. Scenario D/E를 통해 seamless travel과 네트워크 fault profile 검증으로 확장

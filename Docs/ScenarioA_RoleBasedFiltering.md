@@ -8,6 +8,7 @@
 - 엔진 기준: UE 5.7.1
 - 목표 시나리오: 역할별 관심 정보 차등 복제
 - 현재 단계: A3 Generic baseline과 A4 Iris role-based filtering의 role별 client snapshot을 기록한 상태
+- 포트폴리오 관점: 기능 데모 기준으로는 약 70~75% 완료, 성능 측정/디버깅 중심 포트폴리오 기준으로는 약 45~50% 완료
 
 이미 확인한 기반 상태:
 
@@ -22,6 +23,8 @@
 - [x] Generic/Iris 비교 실행 절차 작성
 - [x] 측정 UI 또는 로그 요약 구현
 - [x] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 확인
+
+상위 포트폴리오 보강 방향은 [Portfolio_Performance_Debugging_Plan.md](./Portfolio_Performance_Debugging_Plan.md)를 따른다. Scenario A는 이 계획의 첫 검증 단위이며, 단순히 actor 수가 다르게 보이는 것보다 “같은 조건의 Generic/Iris 실행을 구성하고 role별 false positive 복제 여부를 설명할 수 있는가”를 중점으로 마감한다.
 
 ## 2. 시나리오 목표
 
@@ -394,6 +397,19 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 - Scenario A를 2분 안에 재현할 수 있고, 결과를 문서의 표로 설명할 수 있다.
 
+### A6.5. 성능/디버깅 포트폴리오 보강
+
+- [ ] dedicated server + 3 clients에서 Generic/Iris 결과 재현
+- [ ] PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
+- [ ] run id, seed, mode, role filtering, actor count, duration을 파일로 저장
+- [ ] actor count 외에 outgoing bandwidth 또는 replicated object count 중 최소 1개 수집
+- [ ] Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
+- [ ] 실패 또는 불일치 사례가 생기면 원인 분석 로그를 `DebuggingNotes.md`에 기록
+
+완료 기준:
+
+- Scenario A가 “Iris filtering 기능 확인”을 넘어, 실행 조건과 측정 결과를 재현 가능한 형태로 설명할 수 있다.
+
 ### A7. 마무리 문서화
 
 - [ ] 구현 class 목록 추가
@@ -431,7 +447,8 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 1. 서버 형태와 옵션 전달 경로를 명시한 listen server + 3 clients 반복 검증
 2. dedicated server + 3 clients로 같은 결과 재검증
-3. FieldAgent distance 기준 또는 role 변경 console command 추가
-4. Spectator summary update cadence 지연 처리
+3. run metadata를 csv/json으로 저장하는 최소 측정 하네스 작성
+4. FieldAgent distance 기준 또는 role 변경 console command 추가
+5. Spectator summary update cadence 지연 처리
 
 detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 role별 snapshot으로 확인했다. 다음부터는 서버 형태와 옵션 적용 경로를 더 명확히 남기고 dedicated server 검증으로 확장하는 것이 가장 작고 확인 가능한 단위다.
