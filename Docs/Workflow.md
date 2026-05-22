@@ -57,7 +57,7 @@ Tools\RunLocalMultiplay.bat [--no-iris] [추가인자]
 Tools\RunLocalBinariesMultiplay.bat [--no-iris] [추가인자]
 ```
 
-이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. 서버는 PowerShell 콘솔에서 실행해 창을 유지하고, `Tee-Object`로 콘솔 출력과 `Saved\Logs\RunLocalBinariesServer.log` 파일 로그를 동시에 남긴다. 서버 실행 후에는 기본 60초 동안 UDP 게임 포트가 바인딩될 때까지 기다린 뒤 클라이언트를 실행한다. 대기 시간을 바꾸려면 `--server-wait-timeout 30`처럼 지정하고, 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.
+이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. 서버는 PowerShell 래핑 없이 exe를 직접 실행하고, `-log -stdout -FullStdOutLogOutput`으로 서버 로그 창과 UE 로그 출력을 사용한다. 서버 실행 후에는 기본 5초 동안 단순 대기한 뒤 클라이언트를 실행한다. 대기 시간을 바꾸려면 `--server-startup-wait 10`처럼 지정한다. 기존 호환용으로 `--server-wait-timeout 10`도 같은 의미로 받으며, 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.
 
 ## Scenario A Baseline 기록
 
