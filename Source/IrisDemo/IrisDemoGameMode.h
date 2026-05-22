@@ -69,6 +69,8 @@ private:
 
 	void LogScenarioABaselineComplete() const;
 
+	void WriteScenarioARunMetadata() const;
+
 	int32 NextScenarioARoleIndex = 0;
 
 	int32 NextScenarioAFieldAgentZoneId = 0;
@@ -90,6 +92,12 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	bool bScenarioAEnableRoleFiltering = false;
+
+	FString ScenarioARunId;
+
+	FString ScenarioARunIdSource = TEXT("Default");
+
+	FString ScenarioARoleFilteringSource = TEXT("Default");
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	TSubclassOf<ARelayDroneActor> ScenarioADroneClass;

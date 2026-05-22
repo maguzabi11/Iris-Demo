@@ -80,6 +80,13 @@
 - `IrisRelayLogBaselineSnapshot`을 수동 콘솔 명령에서 자동 기록으로 확장
 - 결과 표를 수동 복사보다 파일 기반으로 남기는 방향으로 개선
 
+2026-05-22 기준 1차 측정 하네스:
+
+- 서버는 `Saved/ScenarioA/Runs/<RunId>/run.json`에 실행 조건을 저장한다.
+- `IrisRelayLogBaselineSnapshot`은 `Saved/ScenarioA/Runs/<RunId>/client_snapshots.csv`에 local client 수신 결과를 append한다.
+- local 실행 배치는 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 client에 공통 전달한다.
+- 다음 보강은 actor count 외의 `outgoing bandwidth`, replicated object count, CSV/NetTrace 중 하나를 같은 RunId 아래에 남기는 것이다.
+
 ### Phase 3. Unreal Insights / NetTrace / CSV 수집
 
 비교 run은 최소 다음 네 가지를 둔다.
@@ -128,7 +135,7 @@
 ## 7. 다음 우선순위
 
 1. Scenario A dedicated server + 3 clients 검증
-2. Scenario A run metadata 파일 저장
-3. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
+2. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
+3. outgoing bandwidth 또는 replicated object count 중 최소 1개 기록
 4. `PerformanceRuns.md`와 `DebuggingNotes.md` 생성
 5. Scenario C UObject/subobject replication 최소 구현 착수

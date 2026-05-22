@@ -4,10 +4,14 @@
 #include "IrisDemoPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
+#include "HAL/FileManager.h"
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
 #include "IrisDemo.h"
+#include "Misc/DateTime.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "ScenarioA/RelayDroneActor.h"
 #include "ScenarioA/RelayOperationalSummaryActor.h"
 #include "ScenarioA/RelayPlayerState.h"
@@ -102,6 +106,50 @@ namespace
 			Stats.ZoneTotals.IsValidIndex(1) ? Stats.ZoneTotals[1] : 0,
 			Stats.ZoneTotals.IsValidIndex(2) ? Stats.ZoneTotals[2] : 0,
 			Stats.UnknownZoneTotal);
+	}
+
+	FString GetScenarioANetModeLabel(const UWorld* World)
+	{
+		if (!World)
+		{
+			return TEXT("Unknown");
+		}
+
+		switch (World->GetNetMode())
+		{
+		case NM_Standalone:
+			return TEXT("Standalone");
+		case NM_DedicatedServer:
+			return TEXT("DedicatedServer");
+		case NM_ListenServer:
+			return TEXT("ListenServer");
+		case NM_Client:
+			return TEXT("Client");
+		default:
+			return TEXT("Unknown");
+		}
+	}
+
+	FString FormatScenarioACsvCell(const FString& Value)
+	{
+		if (!Value.Contains(TEXT(",")) && !Value.Contains(TEXT("\"")) && !Value.Contains(TEXT("\n")) && !Value.Contains(TEXT("\r")))
+		{
+			return Value;
+		}
+
+		FString Escaped = Value;
+		Escaped.ReplaceInline(TEXT("\""), TEXT("\"\""));
+		return FString::Printf(TEXT("\"%s\""), *Escaped);
+	}
+
+	FString GetScenarioAClientSnapshotCsvHeader()
+	{
+		return TEXT("Timestamp,RunId,Source,Mode,NetMode,Role,Zone,Controller,SensorCount,DroneCount,SupplyCrateCount,SummaryCount,DetailActorTotal,SensorZ0,SensorZ1,SensorZ2,SensorUnknown,DroneZ0,DroneZ1,DroneZ2,DroneUnknown,SupplyCrateZ0,SupplyCrateZ1,SupplyCrateZ2,SupplyCrateUnknown,SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence,DetailMaxSequence");
+	}
+
+	int32 GetScenarioAZoneTotal(const FScenarioAClientActorStats& Stats, int32 ZoneId)
+	{
+		return Stats.ZoneTotals.IsValidIndex(ZoneId) ? Stats.ZoneTotals[ZoneId] : 0;
 	}
 }
 
@@ -239,4 +287,56 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 		SupplyCrateStats.LastSequence,
 		SummaryStats.LastSequence,
 		DetailLastSequence);
+
+	const FString RunId = GetScenarioARunId();
+	const FString RunDirectory = GetScenarioARunDirectory(RunId);
+	IFileManager::Get().MakeDirectory(*RunDirectory, true);
+
+	const FString SnapshotCsvPath = FPaths::Combine(RunDirectory, TEXT("client_snapshots.csv"));
+	const bool bWriteHeader = !IFileManager::Get().FileExists(*SnapshotCsvPath);
+	const FString CsvRow = FString::Printf(TEXT("%s,%s,%s,%s,%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s"),
+		*FormatScenarioACsvCell(FDateTime::Now().ToIso8601()),
+		*FormatScenarioACsvCell(RunId),
+		*FormatScenarioACsvCell(Source ? Source : TEXT("Unknown")),
+		*FormatScenarioACsvCell(GetIrisReplicationModeLabel(World)),
+		*FormatScenarioACsvCell(GetScenarioANetModeLabel(World)),
+		*FormatScenarioACsvCell(RoleName),
+		AssignedZoneId,
+		*FormatScenarioACsvCell(GetName()),
+		SensorStats.Total,
+		DroneStats.Total,
+		SupplyCrateStats.Total,
+		SummaryStats.Total,
+		DetailActorTotal,
+		GetScenarioAZoneTotal(SensorStats, 0),
+		GetScenarioAZoneTotal(SensorStats, 1),
+		GetScenarioAZoneTotal(SensorStats, 2),
+		SensorStats.UnknownZoneTotal,
+		GetScenarioAZoneTotal(DroneStats, 0),
+		GetScenarioAZoneTotal(DroneStats, 1),
+		GetScenarioAZoneTotal(DroneStats, 2),
+		DroneStats.UnknownZoneTotal,
+		GetScenarioAZoneTotal(SupplyCrateStats, 0),
+		GetScenarioAZoneTotal(SupplyCrateStats, 1),
+		GetScenarioAZoneTotal(SupplyCrateStats, 2),
+		SupplyCrateStats.UnknownZoneTotal,
+		SensorStats.LastSequence,
+		DroneStats.LastSequence,
+		SupplyCrateStats.LastSequence,
+		SummaryStats.LastSequence,
+		DetailLastSequence,
+		LINE_TERMINATOR);
+
+	const FString CsvText = bWriteHeader
+		? FString::Printf(TEXT("%s%s%s"), *GetScenarioAClientSnapshotCsvHeader(), LINE_TERMINATOR, *CsvRow)
+		: CsvRow;
+
+	if (FFileHelper::SaveStringToFile(CsvText, *SnapshotCsvPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM, &IFileManager::Get(), FILEWRITE_Append))
+	{
+		UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client snapshot csv appended: RunId=%s Path=%s"), *RunId, *SnapshotCsvPath);
+	}
+	else
+	{
+		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A client snapshot csv append failed: RunId=%s Path=%s"), *RunId, *SnapshotCsvPath);
+	}
 }

@@ -26,6 +26,7 @@ set "PORT=7777"
 set "DRY_RUN=0"
 set "SERVER_STARTUP_WAIT=5"
 set "SCENARIO_ARGS=-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2"
+for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "SCENARIO_RUN_ID=ScenarioA_%%I"
 set "EXTRA_ARGS="
 
 :: Command line argument parsing
@@ -61,6 +62,9 @@ if /i "!CURRENT_ARG!"=="--no-iris" (
     shift
 ) else if /i "!CURRENT_ARG:~0,22!"=="--server-startup-wait=" (
     set "SERVER_STARTUP_WAIT=!CURRENT_ARG:~22!"
+) else if /i "!CURRENT_ARG!"=="--run-id" (
+    set "SCENARIO_RUN_ID=%~2"
+    shift
 ) else (
     if not "!CURRENT_ARG!"=="" if "!CURRENT_ARG:~0,1!"=="-" if not "!NEXT_ARG!"=="" if not "!NEXT_ARG:~0,1!"=="-" (
         set "EXTRA_ARGS=!EXTRA_ARGS! !CURRENT_ARG!=!NEXT_ARG!"
@@ -74,7 +78,8 @@ goto loop
 :end_loop
 
 set "IRIS_ARG=-UseIrisReplication=%USE_IRIS% -net.Iris.UseIrisReplication=%USE_IRIS%"
-set "ALL_ARGS=%IRIS_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
+set "RUN_ARG=-ScenarioARunId=%SCENARIO_RUN_ID%"
+set "ALL_ARGS=%IRIS_ARG% %RUN_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
 
 echo ===================================================
 echo [IrisDemo] Local Binaries Multiplay Test Session
@@ -84,6 +89,7 @@ echo Server:       %SERVER_EXE%
 echo Client:       %CLIENT_EXE%
 echo Iris Enabled: %USE_IRIS%
 echo Port:         %PORT%
+echo Run Id:       %SCENARIO_RUN_ID%
 echo Dry Run:      %DRY_RUN%
 echo Server Wait:  %SERVER_STARTUP_WAIT%s
 echo Base Args:    %SCENARIO_ARGS%

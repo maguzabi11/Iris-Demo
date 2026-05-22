@@ -25,6 +25,7 @@ if not exist "%PROJECT_FILE%" (
 set "USE_IRIS=1"
 set "PORT=7777"
 set "SCENARIO_ARGS=-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2"
+for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "SCENARIO_RUN_ID=ScenarioA_%%I"
 set "EXTRA_ARGS="
 
 :: 명령행 인자 분석 루프
@@ -38,6 +39,9 @@ if /i "%~1"=="--no-iris" (
     set "USE_IRIS=0"
 ) else if /i "%~1"=="-UseIrisReplication=1" (
     set "USE_IRIS=1"
+) else if /i "%~1"=="--run-id" (
+    set "SCENARIO_RUN_ID=%~2"
+    shift
 ) else (
     set "EXTRA_ARGS=%EXTRA_ARGS% %1"
 )
@@ -46,7 +50,8 @@ goto loop
 :end_loop
 
 set "IRIS_ARG=-UseIrisReplication=%USE_IRIS% -net.Iris.UseIrisReplication=%USE_IRIS%"
-set "ALL_ARGS=%IRIS_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
+set "RUN_ARG=-ScenarioARunId=%SCENARIO_RUN_ID%"
+set "ALL_ARGS=%IRIS_ARG% %RUN_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
 
 echo ===================================================
 echo [IrisDemo] Local Multiplay Test Session
@@ -55,6 +60,7 @@ echo Engine Dir: %UE_ENGINE_DIR%
 echo Project:    %PROJECT_FILE%
 echo Iris Enabled: %USE_IRIS%
 echo Port:       %PORT%
+echo Run Id:     %SCENARIO_RUN_ID%
 echo Base Args:  %SCENARIO_ARGS%
 echo Extra Args: %EXTRA_ARGS%
 echo ===================================================

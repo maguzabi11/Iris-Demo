@@ -314,6 +314,31 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 서버 측정 구간 종료: `Scenario A baseline server window complete`
 - 각 local client 수신 기준: console에서 `IrisRelayLogBaselineSnapshot` 실행 후 `Scenario A baseline client snapshot` 기록
 
+자동 파일 기록:
+
+- 서버 `GameMode`는 BeginPlay 이후 `Saved/ScenarioA/Runs/<RunId>/run.json`을 저장한다.
+- 각 local client에서 `IrisRelayLogBaselineSnapshot`을 실행하면 같은 RunId의 `client_snapshots.csv`에 한 줄을 append한다.
+- `RunId`는 `-ScenarioARunId=<id>`로 넘기며, `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 기본적으로 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 모든 client에 공통 전달한다.
+- 수동으로 고정하려면 배치 실행 시 `--run-id ScenarioA_manual_001`처럼 넘긴다.
+
+`run.json` 주요 필드:
+
+- `runId`, `timestamp`, `map`, `serverType`, `mode`
+- `irisCommandLineOverride`, `roleFiltering`, `roleFilteringSource`, `runIdSource`
+- `seed`, `sensorCount`, `droneCount`, `supplyCrateCount`, `summaryCount`, `detailActorTotal`
+- `updateInterval`, `runDuration`, `commandLine`
+
+`client_snapshots.csv` 컬럼:
+
+```csv
+Timestamp,RunId,Source,Mode,NetMode,Role,Zone,Controller,
+SensorCount,DroneCount,SupplyCrateCount,SummaryCount,DetailActorTotal,
+SensorZ0,SensorZ1,SensorZ2,SensorUnknown,
+DroneZ0,DroneZ1,DroneZ2,DroneUnknown,
+SupplyCrateZ0,SupplyCrateZ1,SupplyCrateZ2,SupplyCrateUnknown,
+SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence,DetailMaxSequence
+```
+
 - [x] Generic replication 실행 인자 정리: `-UseIrisReplication=0`
 - [x] Iris 실행 인자 정리: `-UseIrisReplication=1`
 - [x] 같은 seed/count/duration으로 실행하는 절차 작성
@@ -334,6 +359,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 2026-05-19: 사용자 제공 Commander snapshot 기준으로 Generic/Iris 모두 `SensorCount=6`, `DroneCount=3`, `SupplyCrateCount=3`, `SummaryCount=1`, `DetailActorTotal=12`를 확인했다. Generic은 `DetailMax=11`, Iris는 `DetailMax=4`로 측정 시점은 다르지만 actor count와 zone 분포는 동일했다. FieldAgent/Spectator snapshot은 아직 미측정이다. `Tools\BuildEditor.bat`로 UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-20: 사용자 제공 Generic snapshot 기준으로 Commander/FieldAgent/Spectator 모두 `DetailActorTotal=12`, `SummaryCount=1`을 수신했다. role과 무관하게 `SensorZones=2/2/2`, `DroneZones=1/1/1`, `SupplyCrateZones=1/1/1`이므로 Generic baseline 기대값과 일치한다.
 - 2026-05-22: `Docs/학습/결과임시기록.md`의 local binary snapshot 기준으로 listen server와 dedicated server 모두 Generic baseline에서 Commander/FieldAgent/Spectator가 `DetailActorTotal=12`, `SummaryCount=1`을 수신했다. 각 role의 zone 분포도 `SensorZones=2/2/2`, `DroneZones=1/1/1`, `SupplyCrateZones=1/1/1`로 동일해 A3 control run 기대값과 일치한다.
+- 2026-05-22: `-ScenarioARunId` 기반 run 폴더를 추가했다. 서버는 `run.json`에 실행 조건을 저장하고, `IrisRelayLogBaselineSnapshot`은 `client_snapshots.csv`에 local client 수신 결과를 append한다. `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 같은 RunId를 서버와 client에 공통 전달한다.
 
 ### A4. Role-Based Filtering 구현
 
@@ -404,7 +430,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 - [x] dedicated server + 3 clients에서 Generic/Iris 결과 재현
 - [ ] PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
-- [ ] run id, seed, mode, role filtering, actor count, duration을 파일로 저장
+- [x] run id, seed, mode, role filtering, actor count, duration을 파일로 저장
 - [ ] actor count 외에 outgoing bandwidth 또는 replicated object count 중 최소 1개 수집
 - [ ] Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
 - [ ] 실패 또는 불일치 사례가 생기면 원인 분석 로그를 `DebuggingNotes.md`에 기록

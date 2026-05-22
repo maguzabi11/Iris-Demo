@@ -8,9 +8,13 @@
 #include "Iris/ReplicationSystem/ObjectReplicationBridge.h"
 #include "Iris/ReplicationSystem/ReplicationSystem.h"
 #include "IrisDemo.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/DateTime.h"
 #include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "Net/Iris/ReplicationSystem/ReplicationSystemUtil.h"
 #include "Engine/NetConnection.h"
 #include "ScenarioA/RelayDroneActor.h"
@@ -203,6 +207,67 @@ bool ShouldScenarioAConnectionReceiveSummary(ERelayOperatorRole Role)
 {
 	return Role == ERelayOperatorRole::Commander || Role == ERelayOperatorRole::Spectator;
 }
+
+FString EscapeScenarioAJsonString(const FString& Value)
+{
+	FString Escaped;
+	Escaped.Reserve(Value.Len());
+
+	for (int32 Index = 0; Index < Value.Len(); ++Index)
+	{
+		const TCHAR Character = Value[Index];
+		switch (Character)
+		{
+		case TCHAR('\\'):
+			Escaped += TEXT("\\\\");
+			break;
+		case TCHAR('"'):
+			Escaped += TEXT("\\\"");
+			break;
+		case TCHAR('\n'):
+			Escaped += TEXT("\\n");
+			break;
+		case TCHAR('\r'):
+			Escaped += TEXT("\\r");
+			break;
+		case TCHAR('\t'):
+			Escaped += TEXT("\\t");
+			break;
+		default:
+			Escaped.AppendChar(Character);
+			break;
+		}
+	}
+
+	return Escaped;
+}
+
+FString QuoteScenarioAJsonString(const FString& Value)
+{
+	return FString::Printf(TEXT("\"%s\""), *EscapeScenarioAJsonString(Value));
+}
+
+FString GetScenarioANetModeLabel(const UWorld* World)
+{
+	if (!World)
+	{
+		return TEXT("Unknown");
+	}
+
+	switch (World->GetNetMode())
+	{
+	case NM_Standalone:
+		return TEXT("Standalone");
+	case NM_DedicatedServer:
+		return TEXT("DedicatedServer");
+	case NM_ListenServer:
+		return TEXT("ListenServer");
+	case NM_Client:
+		return TEXT("Client");
+	default:
+		return TEXT("Unknown");
+	}
+}
 }
 
 AIrisDemoGameMode::AIrisDemoGameMode()
@@ -240,6 +305,7 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	EScenarioAOptionSource SupplyCrateCountSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource UpdateIntervalSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource RunDurationSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource RunIdSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource RoleFilteringRuntimeSource = EScenarioAOptionSource::None;
 
 	FString RoleFilteringSource = TEXT("Default");
@@ -254,10 +320,24 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount, SupplyCrateCountSource);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval, UpdateIntervalSource);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration, RunDurationSource);
+
+	FString RawRunId;
+	if (TryReadScenarioAOptionValue(Options, TEXT("ScenarioARunId"), RawRunId, RunIdSource))
+	{
+		ScenarioARunId = MakeScenarioARunId(RawRunId);
+		ScenarioARunIdSource = GetScenarioAOptionSourceLabel(RunIdSource);
+	}
+	else
+	{
+		ScenarioARunId = GetScenarioARunId();
+		ScenarioARunIdSource = TEXT("Generated");
+	}
+
 	if (TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering, RoleFilteringRuntimeSource))
 	{
 		RoleFilteringSource = GetScenarioAOptionSourceLabel(RoleFilteringRuntimeSource);
 	}
+	ScenarioARoleFilteringSource = RoleFilteringSource;
 
 	ScenarioASeed = FMath::Max(0, ScenarioASeed);
 	ScenarioASensorCount = FMath::Max(0, ScenarioASensorCount);
@@ -266,11 +346,13 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	ScenarioASensorUpdateInterval = FMath::Max(0.1f, ScenarioASensorUpdateInterval);
 	ScenarioARunDuration = FMath::Max(0.0f, ScenarioARunDuration);
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RoleFiltering=%s RoleFilteringSource=%s Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s]"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RunId=%s RunIdSource=%s RoleFiltering=%s RoleFilteringSource=%s Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s]"),
 		*Options,
 		FCommandLine::Get(),
 		*GetIrisReplicationCommandLineOverrideLabel(),
 		*GetIrisReplicationModeLabel(GetWorld()),
+		*ScenarioARunId,
+		*ScenarioARunIdSource,
 		bScenarioAEnableRoleFiltering ? TEXT("Enabled") : TEXT("Disabled"),
 		*RoleFilteringSource,
 		GetScenarioAOptionSourceLabel(SeedSource),
@@ -290,6 +372,7 @@ void AIrisDemoGameMode::BeginPlay()
 	SpawnScenarioASupplyCrates();
 	SpawnScenarioAOperationalSummary();
 	LogScenarioABaselineConfig();
+	WriteScenarioARunMetadata();
 	QueueScenarioAFilterRefresh();
 
 	if ((ScenarioASensors.Num() > 0 || ScenarioADrones.Num() > 0 || ScenarioASupplyCrates.Num() > 0) && ScenarioASensorUpdateInterval > 0.0f)
@@ -849,4 +932,66 @@ void AIrisDemoGameMode::LogScenarioABaselineComplete() const
 		ScenarioASeed,
 		ScenarioARunDuration,
 		DetailActorTotal);
+}
+
+void AIrisDemoGameMode::WriteScenarioARunMetadata() const
+{
+	const UWorld* World = GetWorld();
+	const int32 SummaryActorTotal = IsValid(ScenarioAOperationalSummary) ? 1 : 0;
+	const int32 DetailActorTotal = ScenarioASensors.Num() + ScenarioADrones.Num() + ScenarioASupplyCrates.Num();
+	const FString RunId = MakeScenarioARunId(ScenarioARunId);
+	const FString RunDirectory = GetScenarioARunDirectory(RunId);
+
+	IFileManager::Get().MakeDirectory(*RunDirectory, true);
+
+	const FString Json = FString::Printf(TEXT(
+		"{\n"
+		"  \"schemaVersion\": 1,\n"
+		"  \"runId\": %s,\n"
+		"  \"timestamp\": %s,\n"
+		"  \"map\": %s,\n"
+		"  \"serverType\": %s,\n"
+		"  \"mode\": %s,\n"
+		"  \"irisCommandLineOverride\": %s,\n"
+		"  \"roleFiltering\": %s,\n"
+		"  \"roleFilteringSource\": %s,\n"
+		"  \"seed\": %d,\n"
+		"  \"sensorCount\": %d,\n"
+		"  \"droneCount\": %d,\n"
+		"  \"supplyCrateCount\": %d,\n"
+		"  \"summaryCount\": %d,\n"
+		"  \"detailActorTotal\": %d,\n"
+		"  \"updateInterval\": %.3f,\n"
+		"  \"runDuration\": %.3f,\n"
+		"  \"runIdSource\": %s,\n"
+		"  \"commandLine\": %s\n"
+		"}\n"),
+		*QuoteScenarioAJsonString(RunId),
+		*QuoteScenarioAJsonString(FDateTime::Now().ToIso8601()),
+		*QuoteScenarioAJsonString(World ? World->GetMapName() : TEXT("Unknown")),
+		*QuoteScenarioAJsonString(GetScenarioANetModeLabel(World)),
+		*QuoteScenarioAJsonString(GetIrisReplicationModeLabel(World)),
+		*QuoteScenarioAJsonString(GetIrisReplicationCommandLineOverrideLabel()),
+		bScenarioAEnableRoleFiltering ? TEXT("true") : TEXT("false"),
+		*QuoteScenarioAJsonString(ScenarioARoleFilteringSource),
+		ScenarioASeed,
+		ScenarioASensors.Num(),
+		ScenarioADrones.Num(),
+		ScenarioASupplyCrates.Num(),
+		SummaryActorTotal,
+		DetailActorTotal,
+		ScenarioASensorUpdateInterval,
+		ScenarioARunDuration,
+		*QuoteScenarioAJsonString(ScenarioARunIdSource),
+		*QuoteScenarioAJsonString(FCommandLine::Get()));
+
+	const FString RunMetadataPath = FPaths::Combine(RunDirectory, TEXT("run.json"));
+	if (FFileHelper::SaveStringToFile(Json, *RunMetadataPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+	{
+		UE_LOG(LogIrisDemo, Log, TEXT("Scenario A run metadata saved: RunId=%s Path=%s"), *RunId, *RunMetadataPath);
+	}
+	else
+	{
+		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A run metadata save failed: RunId=%s Path=%s"), *RunId, *RunMetadataPath);
+	}
 }

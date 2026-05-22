@@ -5,6 +5,10 @@
 #include "Engine/NetDriver.h"
 #include "Engine/World.h"
 #include "Iris/IrisConfig.h"
+#include "Misc/CommandLine.h"
+#include "Misc/DateTime.h"
+#include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, IrisDemo, "IrisDemo" );
@@ -36,6 +40,23 @@ EReplicationSystem GetFallbackReplicationSystem()
 	}
 
 	return UE::Net::ShouldUseIrisReplication() ? EReplicationSystem::Iris : EReplicationSystem::Generic;
+}
+
+FString SanitizeScenarioARunId(FString RunId)
+{
+	RunId.TrimStartAndEndInline();
+
+	for (int32 Index = 0; Index < RunId.Len(); ++Index)
+	{
+		const TCHAR Character = RunId[Index];
+		const bool bAllowed = FChar::IsAlnum(Character) || Character == TCHAR('_') || Character == TCHAR('-') || Character == TCHAR('.');
+		if (!bAllowed)
+		{
+			RunId[Index] = TCHAR('_');
+		}
+	}
+
+	return RunId;
 }
 }
 
@@ -86,4 +107,36 @@ IRISDEMO_API FString GetIrisReplicationModeLabel(const UWorld* World)
 	}
 
 	return GetIrisReplicationModeLabel();
+}
+
+IRISDEMO_API FString MakeScenarioARunId(const FString& RawRunId)
+{
+	FString RunId = SanitizeScenarioARunId(RawRunId);
+	if (!RunId.IsEmpty())
+	{
+		return RunId;
+	}
+
+	return FString::Printf(TEXT("ScenarioA_%s_%s"),
+		*FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S")),
+		*GetIrisReplicationModeLabel());
+}
+
+IRISDEMO_API FString GetScenarioARunId()
+{
+	static FString CachedRunId;
+	if (!CachedRunId.IsEmpty())
+	{
+		return CachedRunId;
+	}
+
+	FString RawRunId;
+	FParse::Value(FCommandLine::Get(), TEXT("-ScenarioARunId="), RawRunId);
+	CachedRunId = MakeScenarioARunId(RawRunId);
+	return CachedRunId;
+}
+
+IRISDEMO_API FString GetScenarioARunDirectory(const FString& RunId)
+{
+	return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ScenarioA"), TEXT("Runs"), MakeScenarioARunId(RunId));
 }

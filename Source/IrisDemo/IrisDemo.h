@@ -23,3 +23,12 @@ IRISDEMO_API FString GetIrisReplicationModeLabel();
 
 /** Returns a human-readable label for the active world NetDriver replication mode (Iris / Generic / Unknown). */
 IRISDEMO_API FString GetIrisReplicationModeLabel(const UWorld* World);
+
+/** Returns a filesystem-safe Scenario A run id. Empty input generates one from local time and replication mode. */
+IRISDEMO_API FString MakeScenarioARunId(const FString& RawRunId);
+
+/** Returns the Scenario A run id from -ScenarioARunId, or generates a local fallback. */
+IRISDEMO_API FString GetScenarioARunId();
+
+/** Returns Saved/ScenarioA/Runs/<RunId>. */
+IRISDEMO_API FString GetScenarioARunDirectory(const FString& RunId);
