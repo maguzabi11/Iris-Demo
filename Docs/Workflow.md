@@ -41,6 +41,24 @@ Tools\BuildEditor.bat -Verbose
 
 - 2026-05-15: `Tools\BuildEditor.bat` 실행 결과 `IrisDemoEditor Win64 Development` 빌드 성공. UBT 결과는 `Target is up to date`.
 
+## 로컬 멀티플레이 테스트 실행
+
+테스트 편의를 위해 전용 서버 1개와 클라이언트 3개를 동시에 실행하는 배치 스크립트를 제공한다. 이 스크립트는 uncooked 에디터 바이너리를 통해 세션을 시작하므로 별도의 패키징 없이 즉시 로컬에서 테스트할 수 있다.
+
+```bat
+Tools\RunLocalMultiplay.bat [--no-iris] [추가인자]
+```
+
+기본적으로 Iris 복제가 활성화되며 (`-UseIrisReplication=1`), `--no-iris` 옵션을 제공하면 Iris 복제를 비활성화 (`-UseIrisReplication=0`)한 상태로 실행한다. 그 외에 지정된 인자(예: `-ScenarioARunDuration=30`)는 서버와 모든 클라이언트에 그대로 전달된다.
+
+빌드된 `Binaries\Win64\IrisDemoServer.exe`와 `Binaries\Win64\IrisDemoClient.exe`로 같은 구성을 실행하려면 다음 배치를 사용한다.
+
+```bat
+Tools\RunLocalBinariesMultiplay.bat [--no-iris] [추가인자]
+```
+
+이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.
+
 ## Scenario A Baseline 기록
 
 A3 baseline은 filtering 전 control run이다. 실제 측정은 [ScenarioA_RoleBasedFiltering.md](./ScenarioA_RoleBasedFiltering.md)의 A3 절차를 기준으로 한다.
