@@ -73,7 +73,7 @@ shift
 goto loop
 :end_loop
 
-set "IRIS_ARG=-UseIrisReplication=%USE_IRIS%"
+set "IRIS_ARG=-UseIrisReplication=%USE_IRIS% -net.Iris.UseIrisReplication=%USE_IRIS%"
 set "ALL_ARGS=%IRIS_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
 
 echo ===================================================
@@ -98,7 +98,7 @@ if "%DRY_RUN%"=="1" (
 )
 
 echo Starting Dedicated Server...
-start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS%
+start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" Lvl_ThirdPerson -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS%
 
 if "%SERVER_STARTUP_WAIT%"=="0" (
     echo Server wait disabled. Starting clients immediately.
@@ -114,11 +114,11 @@ ping 127.0.0.1 -n %SERVER_STARTUP_PINGS% > nul
 echo Starting Client 1 (Left-Top)...
 start "IrisDemo Binary Client 1" "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 -WinX=0 -WinY=0 %ALL_ARGS%
 
-rem echo Starting Client 2 (Right-Top)...
-rem start "IrisDemo Binary Client 2" "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 -WinX=960 -WinY=0 %ALL_ARGS%
+echo Starting Client 2 (Right-Top)...
+start "IrisDemo Binary Client 2" "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 -WinX=960 -WinY=0 %ALL_ARGS%
 
-rem echo Starting Client 3 (Left-Bottom)...
-rem start "IrisDemo Binary Client 3" "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 -WinX=0 -WinY=540 %ALL_ARGS%
+echo Starting Client 3 (Left-Bottom)...
+start "IrisDemo Binary Client 3" "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 -WinX=0 -WinY=540 %ALL_ARGS%
 
 echo All binary sessions launched.
 endlocal

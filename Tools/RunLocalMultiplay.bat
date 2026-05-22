@@ -45,7 +45,7 @@ shift
 goto loop
 :end_loop
 
-set "IRIS_ARG=-UseIrisReplication=%USE_IRIS%"
+set "IRIS_ARG=-UseIrisReplication=%USE_IRIS% -net.Iris.UseIrisReplication=%USE_IRIS%"
 set "ALL_ARGS=%IRIS_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
 
 echo ===================================================
@@ -60,7 +60,7 @@ echo Extra Args: %EXTRA_ARGS%
 echo ===================================================
 
 echo Starting Dedicated Server...
-start "IrisDemo Dedicated Server" "%UNREAL_EDITOR%" "%PROJECT_FILE%" -server -log -port=%PORT% %ALL_ARGS%
+start "IrisDemo Dedicated Server" "%UNREAL_EDITOR%" "%PROJECT_FILE%" Lvl_ThirdPerson -server -log -port=%PORT% %ALL_ARGS%
 
 :: 서버가 바인딩될 시간을 벌기 위한 대기 (2초)
 ping 127.0.0.1 -n 3 > nul
