@@ -7,8 +7,8 @@
 - 기준일: 2026-05-15
 - 엔진 기준: UE 5.7.1
 - 목표 시나리오: 역할별 관심 정보 차등 복제
-- 현재 단계: A3 Generic baseline과 A4 Iris role-based filtering의 role별 client snapshot을 기록한 상태
-- 포트폴리오 관점: 기능 데모 기준으로는 약 70~75% 완료, 성능 측정/디버깅 중심 포트폴리오 기준으로는 약 45~50% 완료
+- 현재 단계: A3 Generic baseline과 A4 Iris role-based filtering의 role별 client snapshot을 listen server와 dedicated server 양쪽에서 기록한 상태
+- 포트폴리오 관점: 기능 데모 기준으로는 약 80% 완료, 성능 측정/디버깅 중심 포트폴리오 기준으로는 약 50~55% 완료
 
 이미 확인한 기반 상태:
 
@@ -318,7 +318,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - [x] Iris 실행 인자 정리: `-UseIrisReplication=1`
 - [x] 같은 seed/count/duration으로 실행하는 절차 작성
 - [x] Generic mode에서 역할별 수신 actor count 기록
-- [ ] Iris mode에서 역할별 수신 actor count 기록
+- [x] Iris mode에서 역할별 수신 actor count 기록
 - [x] 비교 결과를 `Docs/ScenarioA_RoleBasedFiltering.md`에 기록
 
 완료 기준:
@@ -333,6 +333,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 2026-05-15: A4 구현 이후에도 `ScenarioAEnableRoleFiltering=0`을 명시하면 A3 baseline control run을 이어갈 수 있도록 유지했다. snapshot 로그에는 role zone과 summary count가 추가되었다.
 - 2026-05-19: 사용자 제공 Commander snapshot 기준으로 Generic/Iris 모두 `SensorCount=6`, `DroneCount=3`, `SupplyCrateCount=3`, `SummaryCount=1`, `DetailActorTotal=12`를 확인했다. Generic은 `DetailMax=11`, Iris는 `DetailMax=4`로 측정 시점은 다르지만 actor count와 zone 분포는 동일했다. FieldAgent/Spectator snapshot은 아직 미측정이다. `Tools\BuildEditor.bat`로 UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
 - 2026-05-20: 사용자 제공 Generic snapshot 기준으로 Commander/FieldAgent/Spectator 모두 `DetailActorTotal=12`, `SummaryCount=1`을 수신했다. role과 무관하게 `SensorZones=2/2/2`, `DroneZones=1/1/1`, `SupplyCrateZones=1/1/1`이므로 Generic baseline 기대값과 일치한다.
+- 2026-05-22: `Docs/학습/결과임시기록.md`의 local binary snapshot 기준으로 listen server와 dedicated server 모두 Generic baseline에서 Commander/FieldAgent/Spectator가 `DetailActorTotal=12`, `SummaryCount=1`을 수신했다. 각 role의 zone 분포도 `SensorZones=2/2/2`, `DroneZones=1/1/1`, `SupplyCrateZones=1/1/1`로 동일해 A3 control run 기대값과 일치한다.
 
 ### A4. Role-Based Filtering 구현
 
@@ -357,6 +358,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 2026-05-15: `ScenarioAEnableRoleFiltering=1`일 때 detail actor를 zone별 exclusion group에 넣고, summary actor를 `ScenarioA_OperationalSummary` group에 넣도록 구현. connection id는 `APlayerController::GetNetConnection()->GetConnectionHandle().GetParentConnectionId()`를 사용한다.
 - 2026-05-15: `Tools\BuildEditor.bat`로 UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공. PIE role별 actual count 검증은 아직 남아 있다.
 - 2026-05-20: 사용자 제공 Iris snapshot 기준으로 Commander는 `DetailActorTotal=12`, `SummaryCount=1`을 수신했고, FieldAgent(Zone 0)는 `DetailActorTotal=4`, `SummaryCount=0`, Spectator는 `DetailActorTotal=0`, `SummaryCount=1`을 수신했다. FieldAgent는 Zone 0 detail만 받고 Spectator는 detail actor를 받지 않아 현재 group filtering 정책과 일치한다. `Tools\BuildEditor.bat`로 UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공.
+- 2026-05-22: `Docs/학습/결과임시기록.md`의 listen server와 dedicated server Iris snapshot 모두에서 Commander는 `DetailActorTotal=12`, `SummaryCount=1`, FieldAgent(Zone 0)는 `DetailActorTotal=4`, `SummaryCount=0`, Spectator는 `DetailActorTotal=0`, `SummaryCount=1`을 수신했다. FieldAgent는 Zone 0의 `Sensor=2`, `Drone=1`, `SupplyCrate=1`만 받았고, Spectator는 detail actor를 받지 않아 두 서버 형태에서 A4 group filtering 정책이 같은 결과로 재현되었다.
 
 실행 인자:
 
@@ -387,7 +389,8 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 - [x] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 성공
 - [ ] listen server + 2 clients PIE 검증
-- [ ] dedicated server + 2 clients 실행 검증
+- [x] listen server + 3 clients local binary 실행 검증
+- [x] dedicated server + 3 clients local binary 실행 검증
 - [x] Generic/Iris 양쪽에서 실행 성공
 - [x] 역할별 expected/actual actor count 표 작성
 - [x] false positive 복제 목록 확인
@@ -399,7 +402,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 ### A6.5. 성능/디버깅 포트폴리오 보강
 
-- [ ] dedicated server + 3 clients에서 Generic/Iris 결과 재현
+- [x] dedicated server + 3 clients에서 Generic/Iris 결과 재현
 - [ ] PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
 - [ ] run id, seed, mode, role filtering, actor count, duration을 파일로 저장
 - [ ] actor count 외에 outgoing bandwidth 또는 replicated object count 중 최소 1개 수집
@@ -429,6 +432,10 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 |------|------|-----------|---------------|------|-----------------|------------------|-----------------|------|
 | 2026-05-19~20 | Generic | PIE, 형태 미기록 | 3 role snapshot | 1001 | Detail=12, Summary=1, Seq=11 | Detail=12, Summary=1, Seq=5 | Detail=12, Summary=1, Seq=7 | A3 baseline. 모든 role이 detail 12개와 summary 1개 수신 |
 | 2026-05-19~20 | Iris | PIE, 형태 미기록 | 3 role snapshot | 1001 | Detail=12, Summary=1, Seq=4 | Detail=4, Summary=0, Seq=6 | Detail=0, Summary=1, Seq=29 | A4 filtering. FieldAgent는 Zone 0 detail만, Spectator는 summary만 수신 |
+| 2026-05-22 | Generic | Dedicated server, local binary | 3 role snapshot | 1001 | Detail=12, Summary=1, DetailMax=27 | Detail=12, Summary=1, DetailMax=18 | Detail=12, Summary=1, DetailMax=32 | A3 baseline 재현. 모든 role이 전체 detail과 summary 수신 |
+| 2026-05-22 | Iris | Dedicated server, local binary | 3 role snapshot | 1001 | Detail=12, Summary=1, DetailMax=11 | Detail=4, Summary=0, DetailMax=18 | Detail=0, Summary=1, DetailMax=0 | A4 filtering 재현. FieldAgent는 Zone 0 detail만, Spectator는 summary만 수신 |
+| 2026-05-22 | Generic | Listen server, local binary | 3 role snapshot | 1001 | Detail=12, Summary=1, DetailMax=18 | Detail=12, Summary=1, DetailMax=13 | Detail=12, Summary=1, DetailMax=15 | A3 baseline 재현. 서버 형태가 바뀌어도 role별 차이 없음 |
+| 2026-05-22 | Iris | Listen server, local binary | 3 role snapshot | 1001 | Detail=12, Summary=1, DetailMax=9 | Detail=4, Summary=0, DetailMax=7 | Detail=0, Summary=1, DetailMax=0 | A4 filtering 재현. Dedicated server 결과와 같은 actor count 패턴 |
 
 ## 7. 결정 로그
 
@@ -446,10 +453,10 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 가장 작은 다음 커밋 후보:
 
-1. 서버 형태와 옵션 전달 경로를 명시한 listen server + 3 clients 반복 검증
-2. dedicated server + 3 clients로 같은 결과 재검증
-3. run metadata를 csv/json으로 저장하는 최소 측정 하네스 작성
-4. FieldAgent distance 기준 또는 role 변경 console command 추가
-5. Spectator summary update cadence 지연 처리
+1. run metadata를 csv/json으로 저장하는 최소 측정 하네스 작성
+2. PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
+3. actor count 외에 outgoing bandwidth, replicated object count, NetTrace/CSV 중 최소 1개 수집 경로 작성
+4. 역할 변경 console command와 filter membership 갱신 검증 추가
+5. actor despawn 시 filter membership 정리와 Spectator summary update cadence 지연 처리
 
-detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 role별 snapshot으로 확인했다. 다음부터는 서버 형태와 옵션 적용 경로를 더 명확히 남기고 dedicated server 검증으로 확장하는 것이 가장 작고 확인 가능한 단위다.
+detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 listen server/dedicated server 양쪽 role별 snapshot으로 확인했다. 다음부터는 “실행 조건과 측정 결과를 파일로 남기는 재현성”과 “actor count 밖의 네트워크 측정값”을 확보하는 것이 가장 작고 확인 가능한 단위다.
