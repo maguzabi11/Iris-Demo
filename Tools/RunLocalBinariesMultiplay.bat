@@ -24,6 +24,7 @@ if not exist "%CLIENT_EXE%" (
 set "USE_IRIS=1"
 set "PORT=7777"
 set "DRY_RUN=0"
+set "SERVER_WAIT_TIMEOUT=60"
 set "SCENARIO_ARGS=-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2"
 set "EXTRA_ARGS="
 
@@ -48,6 +49,11 @@ if /i "%~1"=="--no-iris" (
     set "USE_IRIS=1"
 ) else if /i "%~1"=="--dry-run" (
     set "DRY_RUN=1"
+) else if /i "%~1"=="--server-wait-timeout" (
+    set "SERVER_WAIT_TIMEOUT=%~2"
+    shift
+) else if /i "%~1"=="--server-wait-timeout=0" (
+    set "SERVER_WAIT_TIMEOUT=0"
 ) else (
     set "CURRENT_ARG=%~1"
     set "NEXT_ARG=%~2"
@@ -74,6 +80,7 @@ echo Client:       %CLIENT_EXE%
 echo Iris Enabled: %USE_IRIS%
 echo Port:         %PORT%
 echo Dry Run:      %DRY_RUN%
+echo Server Wait:  %SERVER_WAIT_TIMEOUT%s
 echo Base Args:    %SCENARIO_ARGS%
 echo Extra Args:   %EXTRA_ARGS%
 echo ===================================================
@@ -88,8 +95,26 @@ if "%DRY_RUN%"=="1" (
 echo Starting Dedicated Server...
 start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" -log -port=%PORT% %ALL_ARGS%
 
-:: Give the server a moment to bind the port.
-ping 127.0.0.1 -n 3 > nul
+if "%SERVER_WAIT_TIMEOUT%"=="0" (
+    echo Server wait disabled. Starting clients immediately.
+    goto server_ready
+)
+
+echo Waiting for dedicated server UDP port %PORT%...
+for /L %%S in (1,1,%SERVER_WAIT_TIMEOUT%) do (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-NetUDPEndpoint -LocalPort %PORT% -ErrorAction SilentlyContinue) { exit 0 } exit 1" > nul 2> nul
+    if !ERRORLEVEL! EQU 0 (
+        echo Dedicated server is ready on UDP port %PORT%.
+        goto server_ready
+    )
+    ping 127.0.0.1 -n 2 > nul
+)
+
+echo Timed out waiting for dedicated server UDP port %PORT% after %SERVER_WAIT_TIMEOUT% seconds.
+echo Check the server window or Saved\Logs for startup errors.
+exit /b 1
+
+:server_ready
 
 echo Starting Client 1 (Left-Top)...
 start "IrisDemo Binary Client 1" "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 -WinX=0 -WinY=0 %ALL_ARGS%

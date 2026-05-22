@@ -57,7 +57,7 @@ Tools\RunLocalMultiplay.bat [--no-iris] [추가인자]
 Tools\RunLocalBinariesMultiplay.bat [--no-iris] [추가인자]
 ```
 
-이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.
+이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. 서버 실행 후에는 기본 60초 동안 UDP 게임 포트가 바인딩될 때까지 기다린 뒤 클라이언트를 실행한다. 대기 시간을 바꾸려면 `--server-wait-timeout 30`처럼 지정하고, 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.
 
 ## Scenario A Baseline 기록
 
