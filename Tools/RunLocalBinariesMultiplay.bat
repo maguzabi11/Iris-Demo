@@ -7,6 +7,7 @@ for %%I in ("%PROJECT_ROOT%") do set "PROJECT_ROOT=%%~fI"
 set "BINARIES_DIR=%PROJECT_ROOT%\Binaries\Win64"
 set "CLIENT_EXE=%BINARIES_DIR%\IrisDemoClient.exe"
 set "SERVER_EXE=%BINARIES_DIR%\IrisDemoServer.exe"
+set "SERVER_LOG=%PROJECT_ROOT%\Saved\Logs\RunLocalBinariesServer.log"
 
 if not exist "%SERVER_EXE%" (
     echo IrisDemoServer.exe not found: %SERVER_EXE%
@@ -77,6 +78,7 @@ echo ===================================================
 echo Binaries Dir: %BINARIES_DIR%
 echo Server:       %SERVER_EXE%
 echo Client:       %CLIENT_EXE%
+echo Server Log:   %SERVER_LOG%
 echo Iris Enabled: %USE_IRIS%
 echo Port:         %PORT%
 echo Dry Run:      %DRY_RUN%
@@ -86,14 +88,14 @@ echo Extra Args:   %EXTRA_ARGS%
 echo ===================================================
 
 if "%DRY_RUN%"=="1" (
-    echo Server Command: "%SERVER_EXE%" -log -port=%PORT% %ALL_ARGS%
+    echo Server Command: powershell -NoProfile -NoExit -ExecutionPolicy Bypass -Command "^& '%SERVER_EXE%' -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS% 2^>^&1 ^| Tee-Object -FilePath '%SERVER_LOG%'"
     echo Client Command: "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 [window position] %ALL_ARGS%
     echo Dry run complete. No sessions launched.
     exit /b 0
 )
 
 echo Starting Dedicated Server...
-start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" -log -port=%PORT% %ALL_ARGS%
+start "IrisDemo Binary Dedicated Server" powershell -NoProfile -NoExit -ExecutionPolicy Bypass -Command "^& '%SERVER_EXE%' -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS% 2^>^&1 ^| Tee-Object -FilePath '%SERVER_LOG%'"
 
 if "%SERVER_WAIT_TIMEOUT%"=="0" (
     echo Server wait disabled. Starting clients immediately.
