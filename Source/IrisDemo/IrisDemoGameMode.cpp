@@ -3,7 +3,6 @@
 #include "IrisDemoGameMode.h"
 
 #include "GameFramework/PlayerController.h"
-#include "HAL/IConsoleManager.h"
 #include "Iris/ReplicationSystem/Filtering/NetObjectFilter.h"
 #include "Iris/ReplicationSystem/NetObjectGroupHandle.h"
 #include "Iris/ReplicationSystem/ObjectReplicationBridge.h"
@@ -27,10 +26,25 @@ constexpr int32 ScenarioAZoneCount = 3;
 const TCHAR* ScenarioAGameModeConfigSection = TEXT("/Script/IrisDemo.IrisDemoGameMode");
 const TCHAR* ScenarioAEnableRoleFilteringConfigKey = TEXT("bScenarioAEnableRoleFiltering");
 
-bool IsIrisReplicationEnabled()
+enum class EScenarioAOptionSource : uint8
 {
-	const IConsoleVariable* UseIrisCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Iris.UseIrisReplication"));
-	return UseIrisCVar && UseIrisCVar->GetInt() != 0;
+	None,
+	UrlOptions,
+	CommandLine
+};
+
+const TCHAR* GetScenarioAOptionSourceLabel(EScenarioAOptionSource Source)
+{
+	switch (Source)
+	{
+	case EScenarioAOptionSource::UrlOptions:
+		return TEXT("UrlOptions");
+	case EScenarioAOptionSource::CommandLine:
+		return TEXT("CommandLine");
+	case EScenarioAOptionSource::None:
+	default:
+		return TEXT("Default");
+	}
 }
 
 bool TryReadScenarioAUrlOption(const FString& Options, const TCHAR* OptionName, FString& OutValue)
@@ -53,21 +67,29 @@ bool TryReadScenarioAUrlOption(const FString& Options, const TCHAR* OptionName, 
 	return false;
 }
 
-bool TryReadScenarioAOptionValue(const FString& Options, const TCHAR* OptionName, FString& OutValue)
+bool TryReadScenarioAOptionValue(const FString& Options, const TCHAR* OptionName, FString& OutValue, EScenarioAOptionSource& OutSource)
 {
 	if (TryReadScenarioAUrlOption(Options, OptionName, OutValue))
 	{
+		OutSource = EScenarioAOptionSource::UrlOptions;
 		return true;
 	}
 
 	const FString CommandLineOption = FString::Printf(TEXT("-%s="), OptionName);
-	return FParse::Value(FCommandLine::Get(), *CommandLineOption, OutValue);
+	if (FParse::Value(FCommandLine::Get(), *CommandLineOption, OutValue))
+	{
+		OutSource = EScenarioAOptionSource::CommandLine;
+		return true;
+	}
+
+	OutSource = EScenarioAOptionSource::None;
+	return false;
 }
 
-bool TryReadScenarioAIntOption(const FString& Options, const TCHAR* OptionName, int32& OutValue)
+bool TryReadScenarioAIntOption(const FString& Options, const TCHAR* OptionName, int32& OutValue, EScenarioAOptionSource& OutSource)
 {
 	FString RawValue;
-	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue))
+	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue, OutSource))
 	{
 		return false;
 	}
@@ -76,10 +98,10 @@ bool TryReadScenarioAIntOption(const FString& Options, const TCHAR* OptionName, 
 	return true;
 }
 
-bool TryReadScenarioAFloatOption(const FString& Options, const TCHAR* OptionName, float& OutValue)
+bool TryReadScenarioAFloatOption(const FString& Options, const TCHAR* OptionName, float& OutValue, EScenarioAOptionSource& OutSource)
 {
 	FString RawValue;
-	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue))
+	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue, OutSource))
 	{
 		return false;
 	}
@@ -88,10 +110,10 @@ bool TryReadScenarioAFloatOption(const FString& Options, const TCHAR* OptionName
 	return true;
 }
 
-bool TryReadScenarioABoolOption(const FString& Options, const TCHAR* OptionName, bool& OutValue)
+bool TryReadScenarioABoolOption(const FString& Options, const TCHAR* OptionName, bool& OutValue, EScenarioAOptionSource& OutSource)
 {
 	FString RawValue;
-	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue))
+	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue, OutSource))
 	{
 		return false;
 	}
@@ -210,21 +232,31 @@ void AIrisDemoGameMode::EnsureScenarioAPlayerStateClass()
 
 void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 {
-	const TCHAR* RoleFilteringSource = TEXT("Default");
+	ApplyIrisReplicationCommandLineOverride();
+
+	EScenarioAOptionSource SeedSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource SensorCountSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource DroneCountSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource SupplyCrateCountSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource UpdateIntervalSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource RunDurationSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource RoleFilteringRuntimeSource = EScenarioAOptionSource::None;
+
+	FString RoleFilteringSource = TEXT("Default");
 	if (TryReadScenarioABoolConfig(ScenarioAGameModeConfigSection, ScenarioAEnableRoleFilteringConfigKey, bScenarioAEnableRoleFiltering))
 	{
 		RoleFilteringSource = TEXT("DefaultGame.ini");
 	}
 
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASeed"), ScenarioASeed);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASensorCount"), ScenarioASensorCount);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioADroneCount"), ScenarioADroneCount);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration);
-	if (TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering))
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioASeed"), ScenarioASeed, SeedSource);
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioASensorCount"), ScenarioASensorCount, SensorCountSource);
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioADroneCount"), ScenarioADroneCount, DroneCountSource);
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount, SupplyCrateCountSource);
+	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval, UpdateIntervalSource);
+	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration, RunDurationSource);
+	if (TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering, RoleFilteringRuntimeSource))
 	{
-		RoleFilteringSource = TEXT("RuntimeOption");
+		RoleFilteringSource = GetScenarioAOptionSourceLabel(RoleFilteringRuntimeSource);
 	}
 
 	ScenarioASeed = FMath::Max(0, ScenarioASeed);
@@ -234,10 +266,19 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	ScenarioASensorUpdateInterval = FMath::Max(0.1f, ScenarioASensorUpdateInterval);
 	ScenarioARunDuration = FMath::Max(0.0f, ScenarioARunDuration);
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: Options=\"%s\" RoleFiltering=%s RoleFilteringSource=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RoleFiltering=%s RoleFilteringSource=%s Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s]"),
 		*Options,
+		FCommandLine::Get(),
+		*GetIrisReplicationCommandLineOverrideLabel(),
+		*GetIrisReplicationModeLabel(GetWorld()),
 		bScenarioAEnableRoleFiltering ? TEXT("Enabled") : TEXT("Disabled"),
-		RoleFilteringSource);
+		*RoleFilteringSource,
+		GetScenarioAOptionSourceLabel(SeedSource),
+		GetScenarioAOptionSourceLabel(SensorCountSource),
+		GetScenarioAOptionSourceLabel(DroneCountSource),
+		GetScenarioAOptionSourceLabel(SupplyCrateCountSource),
+		GetScenarioAOptionSourceLabel(UpdateIntervalSource),
+		GetScenarioAOptionSourceLabel(RunDurationSource));
 }
 
 void AIrisDemoGameMode::BeginPlay()
@@ -667,10 +708,10 @@ void AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering()
 		return;
 	}
 
-	if (!IsIrisReplicationEnabled())
+	if (!IsUsingIrisReplication(World))
 	{
 		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=IrisDisabled"),
-			*GetIrisReplicationModeLabel());
+			*GetIrisReplicationModeLabel(World));
 		return;
 	}
 
@@ -678,7 +719,7 @@ void AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering()
 	if (!ReplicationSystem)
 	{
 		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=NoReplicationSystem"),
-			*GetIrisReplicationModeLabel());
+			*GetIrisReplicationModeLabel(World));
 		return;
 	}
 
@@ -686,7 +727,7 @@ void AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering()
 	if (!ReplicationBridge)
 	{
 		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=NoReplicationBridge"),
-			*GetIrisReplicationModeLabel());
+			*GetIrisReplicationModeLabel(World));
 		return;
 	}
 
@@ -770,7 +811,7 @@ void AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering()
 		}
 
 		UE_LOG(LogIrisDemo, Log, TEXT("Scenario A role filtering applied: Mode=%s ConnectionId=%u Controller=%s Role=%s AssignedZone=%d Summary=%s DetailZones=[Z0:%s Z1:%s Z2:%s]"),
-			*GetIrisReplicationModeLabel(),
+			*GetIrisReplicationModeLabel(World),
 			ConnectionId,
 			*GetNameSafe(PlayerController),
 			RelayPlayerState ? *RelayPlayerState->GetOperatorRoleName() : TEXT("Unassigned"),
@@ -787,7 +828,7 @@ void AIrisDemoGameMode::LogScenarioABaselineConfig() const
 	const int32 DetailActorTotal = ScenarioASensors.Num() + ScenarioADrones.Num() + ScenarioASupplyCrates.Num();
 	const int32 SummaryActorTotal = IsValid(ScenarioAOperationalSummary) ? 1 : 0;
 	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline config: Mode=%s Seed=%d SensorCount=%d DroneCount=%d SupplyCrateCount=%d SummaryCount=%d DetailActorTotal=%d UpdateInterval=%.2f RunDuration=%.2f RoleFiltering=%s ExpectedPreFilterClientDetailActors=%d"),
-		*GetIrisReplicationModeLabel(),
+		*GetIrisReplicationModeLabel(GetWorld()),
 		ScenarioASeed,
 		ScenarioASensors.Num(),
 		ScenarioADrones.Num(),
@@ -804,7 +845,7 @@ void AIrisDemoGameMode::LogScenarioABaselineComplete() const
 {
 	const int32 DetailActorTotal = ScenarioASensors.Num() + ScenarioADrones.Num() + ScenarioASupplyCrates.Num();
 	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline server window complete: Mode=%s Seed=%d Duration=%.2f DetailActorTotal=%d"),
-		*GetIrisReplicationModeLabel(),
+		*GetIrisReplicationModeLabel(GetWorld()),
 		ScenarioASeed,
 		ScenarioARunDuration,
 		DetailActorTotal);

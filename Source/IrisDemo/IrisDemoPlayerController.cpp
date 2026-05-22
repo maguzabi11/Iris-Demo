@@ -222,7 +222,7 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 
 	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline client snapshot: Source=%s Mode=%s Role=%s Zone=%d Controller=%s SensorCount=%d DroneCount=%d SupplyCrateCount=%d SummaryCount=%d DetailActorTotal=%d SensorZones=[%s] DroneZones=[%s] SupplyCrateZones=[%s] LastSequences=[Sensor:%d Drone:%d SupplyCrate:%d Summary:%d DetailMax:%d]"),
 		Source ? Source : TEXT("Unknown"),
-		*GetIrisReplicationModeLabel(),
+		*GetIrisReplicationModeLabel(World),
 		*RoleName,
 		AssignedZoneId,
 		*GetName(),

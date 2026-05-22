@@ -158,14 +158,14 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 
 `ScenarioAEnableRoleFiltering=1` 옵션을 켤 때만 filtering을 적용한다. 이 옵션을 끄면 A3 baseline처럼 role과 무관하게 detail actor total을 비교할 수 있다.
 
-기본값은 `Config/DefaultGame.ini`의 GameMode 섹션에서 설정할 수 있다. `InitGame`에서는 `DefaultGame.ini` 값을 먼저 읽고, URL option 또는 command line option이 실제로 전달되면 그 값을 최종값으로 덮어쓴다.
+기본값은 `Config/DefaultGame.ini`의 GameMode 섹션에서 설정할 수 있다. `InitGame`의 `Options` 인자는 `?Name=Player` 같은 URL option만 담고, 프로세스 command line 전체를 담지 않는다. Scenario A 옵션 적용 코드는 `DefaultGame.ini` 값을 먼저 읽고, URL option 또는 `FCommandLine::Get()`에서 읽은 command line option이 실제로 전달되면 그 값을 최종값으로 덮어쓴다.
 
 ```ini
 [/Script/IrisDemo.IrisDemoGameMode]
 bScenarioAEnableRoleFiltering=True
 ```
 
-옵션 적용 여부는 서버 로그의 `Scenario A options applied`에서 확인한다. `RoleFilteringSource=DefaultGame.ini`이면 ini 값이 적용된 것이고, `RoleFilteringSource=RuntimeOption`이면 `?ScenarioAEnableRoleFiltering=1` 또는 `-ScenarioAEnableRoleFiltering=1`이 ini 값을 덮어쓴 것이다.
+옵션 적용 여부는 서버 로그의 `Scenario A options applied`에서 확인한다. `UrlOptions`는 `InitGame`에서 받은 URL option이고, `CommandLine`은 프로세스 command line이다. `Sources=[...]` 항목이 `CommandLine`이면 `-ScenarioA...` 인자가 적용된 것이고, `RoleFilteringSource=UrlOptions` 또는 `RoleFilteringSource=CommandLine`이면 `?ScenarioAEnableRoleFiltering=1` 또는 `-ScenarioAEnableRoleFiltering=1`이 ini 값을 덮어쓴 것이다.
 
 ### 4.3 Filtering 정책
 
@@ -440,6 +440,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 | 2026-05-15 | A4 filtering은 `ScenarioAEnableRoleFiltering=1` opt-in으로 둔다. | A3 baseline 실제 측정이 아직 비어 있으므로 필터를 기본 적용하면 pre-filter control run을 잃게 됨 | A3는 옵션 off, A4는 옵션 on으로 각각 결과 표를 기록 |
 | 2026-05-15 | 첫 A4 구현은 Iris group filtering으로 시작한다. | UE 5.7.1 공개 헤더에서 group 생성/멤버십/connection별 status API가 확인되며, custom `UNetObjectFilter`보다 작은 빌드 단위로 검증 가능 | PIE에서 role별 actual count 확인 후 distance/role-change 갱신으로 확장 |
 | 2026-05-15 | A4 role filtering opt-in은 `DefaultGame.ini`에서도 설정할 수 있게 한다. | Rider/PIE 설정의 URL option이 `AIrisDemoGameMode::InitGame` `Options`로 전달되지 않는 경우가 있어, 코드 수정 없이 재현 가능한 설정 경로가 필요함 | 서버 로그의 `Scenario A options applied`와 `RoleFilteringSource`로 실제 적용 경로 확인 |
+| 2026-05-22 | Scenario A의 Iris 판정은 CVar 단독 대신 실제 `NetDriver->IsUsingIrisReplication()`을 우선 사용한다. | UE 5.7.1은 `-UseIrisReplication=1` command line으로 NetDriver를 Iris로 강제할 수 있지만, 이후 config load로 `net.Iris.UseIrisReplication` CVar 로그가 0으로 보일 수 있음 | `Scenario A options applied`, `Scenario A baseline config`, `Scenario A role filtering applied/skipped` 로그의 `IrisMode`/`Mode`로 확인 |
 
 ## 8. 다음 작업 후보
 

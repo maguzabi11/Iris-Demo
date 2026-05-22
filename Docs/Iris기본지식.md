@@ -84,6 +84,8 @@ net.Iris.PushModelMode=1
 
 포트폴리오 데모에서는 이 스위치를 이용해 같은 시나리오를 Generic/Iris로 반복 실행할 수 있어야 한다.
 
+UE 5.7.1에서 `-UseIrisReplication=1`은 `net.Iris.UseIrisReplication` CVar 텍스트와 별도로 NetDriver 선택 단계에서 command line override로 처리된다. 따라서 실행 중 실제 복제 시스템을 판단할 때는 CVar 값만 보지 말고, 가능하면 active `UNetDriver::IsUsingIrisReplication()`을 우선 확인한다. Scenario A 로그도 이 기준으로 `Mode=Iris/Generic`을 남긴다.
+
 ## 4. Iris 핵심 용어
 
 ### Replication System
@@ -137,7 +139,7 @@ Scenario A의 첫 A4 구현은 custom `UNetObjectFilter` 대신 exclusion group�
 - group filtering은 Iris `UReplicationSystem`이 있을 때만 적용된다.
 - Generic replication 비교를 유지하려면 filtering 옵션을 별도로 두는 편이 안전하다.
 - filter group에서 object가 제외되면 remote side의 해당 object가 destroy될 수 있으므로, baseline 측정과 filtering 측정은 옵션을 분리해 실행한다.
-- PIE 실행 설정의 URL option이 GameMode `InitGame`의 `Options`까지 전달되지 않을 수 있다. Scenario A의 role filtering opt-in은 `Config/DefaultGame.ini`의 `[/Script/IrisDemo.IrisDemoGameMode] bScenarioAEnableRoleFiltering=True`로도 켤 수 있고, 실제 URL/command line option이 전달되면 그 값이 ini 값을 덮어쓴다.
+- GameMode `InitGame`의 `Options`는 URL option이며 프로세스 command line 전체가 아니다. Scenario A의 role filtering opt-in은 `Config/DefaultGame.ini`의 `[/Script/IrisDemo.IrisDemoGameMode] bScenarioAEnableRoleFiltering=True`로도 켤 수 있고, URL option 또는 `FCommandLine::Get()`에서 읽은 command line option이 전달되면 그 값이 ini 값을 덮어쓴다.
 
 ## 6. Prioritization
 
