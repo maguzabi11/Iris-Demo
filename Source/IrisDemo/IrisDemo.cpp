@@ -109,6 +109,28 @@ IRISDEMO_API FString GetIrisReplicationModeLabel(const UWorld* World)
 	return GetIrisReplicationModeLabel();
 }
 
+IRISDEMO_API FString GetScenarioANetModeLabel(const UWorld* World)
+{
+	if (!World)
+	{
+		return TEXT("Unknown");
+	}
+
+	switch (World->GetNetMode())
+	{
+	case NM_Standalone:
+		return TEXT("Standalone");
+	case NM_DedicatedServer:
+		return TEXT("DedicatedServer");
+	case NM_ListenServer:
+		return TEXT("ListenServer");
+	case NM_Client:
+		return TEXT("Client");
+	default:
+		return TEXT("Unknown");
+	}
+}
+
 IRISDEMO_API FString MakeScenarioARunId(const FString& RawRunId)
 {
 	FString RunId = SanitizeScenarioARunId(RawRunId);
