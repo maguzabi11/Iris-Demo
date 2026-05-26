@@ -59,4 +59,12 @@ protected:
 
 	void LogScenarioABaselineSnapshot(const TCHAR* Source) const;
 
+	void ScheduleScenarioAAutoBaselineSnapshot();
+
+	void LogScenarioAAutoBaselineSnapshot();
+
+	FTimerHandle ScenarioAAutoSnapshotTimerHandle;
+
+	bool bScenarioAAutoSnapshotLogged = false;
+
 };

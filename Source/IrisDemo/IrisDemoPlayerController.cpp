@@ -9,14 +9,17 @@
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
 #include "IrisDemo.h"
+#include "Misc/CommandLine.h"
 #include "Misc/DateTime.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/Parse.h"
 #include "ScenarioA/RelayDroneActor.h"
 #include "ScenarioA/RelayOperationalSummaryActor.h"
 #include "ScenarioA/RelayPlayerState.h"
 #include "ScenarioA/RelaySensorActor.h"
 #include "ScenarioA/RelaySupplyCrateActor.h"
+#include "TimerManager.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 
 namespace
@@ -156,6 +159,7 @@ void AIrisDemoPlayerController::BeginPlay()
 	}
 
 	LogRelayRole();
+	ScheduleScenarioAAutoBaselineSnapshot();
 }
 
 void AIrisDemoPlayerController::OnRep_PlayerState()
@@ -195,6 +199,48 @@ void AIrisDemoPlayerController::SetupInputComponent()
 void AIrisDemoPlayerController::IrisRelayLogBaselineSnapshot()
 {
 	LogScenarioABaselineSnapshot(TEXT("Console"));
+}
+
+void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
+{
+	if (!IsLocalPlayerController() || bScenarioAAutoSnapshotLogged)
+	{
+		return;
+	}
+
+	float AutoSnapshotDelay = 0.0f;
+	if (!FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoSnapshotDelay="), AutoSnapshotDelay) || AutoSnapshotDelay <= 0.0f)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	World->GetTimerManager().SetTimer(
+		ScenarioAAutoSnapshotTimerHandle,
+		this,
+		&AIrisDemoPlayerController::LogScenarioAAutoBaselineSnapshot,
+		AutoSnapshotDelay,
+		false);
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A auto client snapshot scheduled: Delay=%.2f Controller=%s"),
+		AutoSnapshotDelay,
+		*GetName());
+}
+
+void AIrisDemoPlayerController::LogScenarioAAutoBaselineSnapshot()
+{
+	if (bScenarioAAutoSnapshotLogged)
+	{
+		return;
+	}
+
+	bScenarioAAutoSnapshotLogged = true;
+	LogScenarioABaselineSnapshot(TEXT("Auto"));
 }
 
 bool AIrisDemoPlayerController::ShouldUseTouchControls() const

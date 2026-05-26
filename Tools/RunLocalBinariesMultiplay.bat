@@ -26,7 +26,7 @@ set "REPLICATION_MODE_OPTION=--iris"
 set "PORT=7777"
 set "DRY_RUN=0"
 set "SERVER_STARTUP_WAIT=5"
-set "SCENARIO_ARGS=-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2"
+set "SCENARIO_ARGS=-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioAAutoSnapshotDelay=30"
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "SCENARIO_RUN_ID=ScenarioA_%%I"
 set "EXTRA_ARGS="
 

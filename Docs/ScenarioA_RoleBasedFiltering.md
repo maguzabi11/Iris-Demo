@@ -314,12 +314,12 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 - 서버 시작 기준: `Scenario A baseline config`
 - 서버 측정 구간 종료: `Scenario A baseline server window complete`
-- 각 local client 수신 기준: console에서 `IrisRelayLogBaselineSnapshot` 실행 후 `Scenario A baseline client snapshot` 기록
+- 각 local client 수신 기준: 기본 배치에서는 `-ScenarioAAutoSnapshotDelay=30`으로 자동 기록하고, 필요할 때 console에서 `IrisRelayLogBaselineSnapshot`을 실행해 수동 기록
 
 자동 파일 기록:
 
 - 서버 `GameMode`는 BeginPlay 이후 `Saved/ScenarioA/Runs/<RunId>/run.json`을 저장한다.
-- 각 local client에서 `IrisRelayLogBaselineSnapshot`을 실행하면 같은 RunId의 `client_snapshots.csv`에 한 줄을 append한다.
+- 각 local client는 `-ScenarioAAutoSnapshotDelay=<seconds>`가 0보다 크면 같은 RunId의 `client_snapshots.csv`에 `Source=Auto` row를 한 번 append한다. `IrisRelayLogBaselineSnapshot`을 수동 실행하면 같은 파일에 `Source=Console` row를 추가 append한다.
 - `RunId`는 `-ScenarioARunId=<id>`로 넘기며, `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 기본적으로 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 모든 client에 공통 전달한다.
 - 수동으로 고정하려면 배치 실행 시 `--run-id ScenarioA_manual_001`처럼 넘긴다.
 
