@@ -158,7 +158,9 @@ PlayerRole + ActorCategory + ZoneId + DetailLevel
 
 `ScenarioAEnableRoleFiltering=1` 옵션을 켤 때만 filtering을 적용한다. 이 옵션을 끄면 A3 baseline처럼 role과 무관하게 detail actor total을 비교할 수 있다.
 
-기본값은 `Config/DefaultGame.ini`의 GameMode 섹션에서 설정할 수 있다. `InitGame`의 `Options` 인자는 `?Name=Player` 같은 URL option만 담고, 프로세스 command line 전체를 담지 않는다. Scenario A 옵션 적용 코드는 `DefaultGame.ini` 값을 먼저 읽고, URL option 또는 `FCommandLine::Get()`에서 읽은 command line option이 실제로 전달되면 그 값을 최종값으로 덮어쓴다.
+Scenario A의 role filtering 기본값은 `Config/DefaultGame.ini`의 GameMode 섹션에서 설정할 수 있다. `InitGame`의 `Options` 인자는 `?Name=Player` 같은 URL option만 담고, 프로세스 command line 전체를 담지 않는다. Scenario A 옵션 적용 코드는 `DefaultGame.ini` 값을 먼저 읽고, URL option 또는 `FCommandLine::Get()`에서 읽은 command line option이 실제로 전달되면 그 값을 최종값으로 덮어쓴다.
+
+프로젝트의 replication mode 기본값은 `Config/DefaultEngine.ini`의 `net.Iris.UseIrisReplication=1`이다. 로컬 실행 배치도 기본적으로 `-UseIrisReplication=1 -net.Iris.UseIrisReplication=1`을 전달한다. Generic baseline은 프로젝트 기본값이 아니라 기존 replication path와 비교하기 위한 control run이므로 `--no-iris` 또는 `-UseIrisReplication=0`으로 명시 실행한다.
 
 ```ini
 [/Script/IrisDemo.IrisDemoGameMode]
@@ -303,8 +305,8 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 실행 인자:
 
-- Generic replication: `-UseIrisReplication=0`
-- Iris replication: `-UseIrisReplication=1`
+- Generic replication: `--no-iris` 또는 `-UseIrisReplication=0`
+- Iris replication: 기본값 또는 `-UseIrisReplication=1`
 - 공통 조건: `-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30 -ScenarioAEnableRoleFiltering=0`
 - PIE URL option으로 넘길 때는 같은 이름을 `?ScenarioASeed=1001?ScenarioASensorCount=6?...` 형식으로 붙인다.
 
@@ -390,6 +392,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 
 - A4 Iris filtering: `-UseIrisReplication=1 -ScenarioAEnableRoleFiltering=1 -ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30`
 - Generic mode 또는 `ScenarioAEnableRoleFiltering=0`에서는 role filtering을 적용하지 않는다.
+- Generic mode는 IrisDemo의 기본 실행 경로가 아니라 비교용 control run이다. 로컬 배치에서는 `--no-iris`를 사용하고, 직접 실행할 때는 `-UseIrisReplication=0`을 명시한다.
 - PIE URL option이 `AIrisDemoGameMode::InitGame`의 `Options`로 전달되지 않는 경우, `Config/DefaultGame.ini`에서 `bScenarioAEnableRoleFiltering=True`로 켠 뒤 에디터를 다시 실행한다.
 - 적용 확인 로그: `Scenario A options applied: ... RoleFiltering=Enabled RoleFilteringSource=DefaultGame.ini`
 
@@ -429,7 +432,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 ### A6.5. 성능/디버깅 포트폴리오 보강
 
 - [x] dedicated server + 3 clients에서 Generic/Iris 결과 재현
-- [ ] PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
+- [x] PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
 - [x] run id, seed, mode, role filtering, actor count, duration을 파일로 저장
 - [ ] actor count 외에 outgoing bandwidth 또는 replicated object count 중 최소 1개 수집
 - [ ] Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
@@ -474,14 +477,15 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 | 2026-05-15 | 첫 A4 구현은 Iris group filtering으로 시작한다. | UE 5.7.1 공개 헤더에서 group 생성/멤버십/connection별 status API가 확인되며, custom `UNetObjectFilter`보다 작은 빌드 단위로 검증 가능 | PIE에서 role별 actual count 확인 후 distance/role-change 갱신으로 확장 |
 | 2026-05-15 | A4 role filtering opt-in은 `DefaultGame.ini`에서도 설정할 수 있게 한다. | Rider/PIE 설정의 URL option이 `AIrisDemoGameMode::InitGame` `Options`로 전달되지 않는 경우가 있어, 코드 수정 없이 재현 가능한 설정 경로가 필요함 | 서버 로그의 `Scenario A options applied`와 `RoleFilteringSource`로 실제 적용 경로 확인 |
 | 2026-05-22 | Scenario A의 Iris 판정은 CVar 단독 대신 실제 `NetDriver->IsUsingIrisReplication()`을 우선 사용한다. | UE 5.7.1은 `-UseIrisReplication=1` command line으로 NetDriver를 Iris로 강제할 수 있지만, 이후 config load로 `net.Iris.UseIrisReplication` CVar 로그가 0으로 보일 수 있음 | `Scenario A options applied`, `Scenario A baseline config`, `Scenario A role filtering applied/skipped` 로그의 `IrisMode`/`Mode`로 확인 |
+| 2026-05-26 | IrisDemo의 기본 replication mode는 Iris로 둔다. | 이 프로젝트는 Iris 데모이므로 `net.Iris.UseIrisReplication=1`이 자연스러운 기본값이다. Generic은 기존 replication path와 비교하기 위한 control run이다. | local run batch 기본값은 Iris 유지, Generic 비교는 `--no-iris` 또는 `-UseIrisReplication=0`으로 명시 실행 |
 
 ## 8. 다음 작업 후보
 
 가장 작은 다음 커밋 후보:
 
-1. run metadata를 csv/json으로 저장하는 최소 측정 하네스 작성
-2. PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
-3. actor count 외에 outgoing bandwidth, replicated object count, NetTrace/CSV 중 최소 1개 수집 경로 작성
+1. actor count 외에 outgoing bandwidth, replicated object count, NetTrace/CSV 중 최소 1개 수집 경로 작성
+2. `PerformanceRuns.md`에 같은 RunId 기준 Generic/Iris 비교 표를 추가
+3. `DebuggingNotes.md`에 설정/실행 모드 차이와 실패 로그 분석을 기록
 4. 역할 변경 console command와 filter membership 갱신 검증 추가
 5. actor despawn 시 filter membership 정리와 Spectator summary update cadence 지연 처리
 

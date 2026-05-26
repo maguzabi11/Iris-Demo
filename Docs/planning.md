@@ -13,7 +13,7 @@
 | 항목 | 5.6.1 | 5.7.1 기준 판단 |
 |------|-------|-----------------|
 | **기능 상태** | 공식 문서에서 Experimental 안내와 shipping 주의 문구 확인 | 5.7 릴리즈 노트에서 **Iris (Beta)**로 승격 확인 |
-| **기본 복제 시스템** | Iris는 opt-in. 기존 Generic Replication이 기본 | 5.7도 Iris는 opt-in으로 보는 것이 안전함 |
+| **기본 복제 시스템** | 엔진 기본은 기존 Generic Replication이고 Iris는 opt-in | 프로젝트 기본값은 Iris로 명시 설정하고, Generic은 비교용 override로 실행 |
 | **컴파일/빌드 설정** | Iris는 엔진에 기본 컴파일되지만 프로젝트에서 플러그인과 `SetupIrisSupport(Target)` 설정 필요 | 실제 UE 5.7.1 UBT에서 `TargetRules.bUseIris`는 존재하지 않음. Target.cs가 아니라 Build.cs/uproject/ini 중심으로 설정 |
 | **런타임 활성화** | `net.Iris.UseIrisReplication=1` 또는 `-UseIrisReplication=1` | 동일한 방식으로 비교 실행 구성 가능 |
 | **Seamless Travel** | 5.6 문서 기준으로는 5.7 릴리즈 노트의 추가 항목 전 상태 | 5.7 릴리즈 노트에서 Iris seamless travel support 명시 |
@@ -25,7 +25,7 @@
 ### 사실 확인 요약
 
 - Epic 5.7 릴리즈 노트: Iris가 **Beta**로 이동했고, Actor Factory Overrides, `UReplicationBridge` 제거, `StartActorReplication`/`OnBeginReplication` 명명 정리, Iris/Legacy 간 `OnBeginReplication` 및 `EndReplication` 호출 일관성 개선, **Seamless Travel Support**, polling 최적화, parallel polling 관련 개선이 확인된다.
-- Epic Iris 소개/설정 문서와 실제 UE 5.7.1 빌드 검증: Iris는 기존 replication system과 함께 존재하는 opt-in 시스템이다. 엔진은 Iris를 컴파일하지만 기본 복제 시스템은 기존 시스템이며, 프로젝트에서 플러그인 활성화, `SetupIrisSupport(Target)`, `DefaultEngine.ini` 설정을 명시한다. 현재 설치된 UE 5.7.1에서는 `TargetRules.bUseIris`가 없어 Target.cs에 쓰면 빌드가 실패한다.
+- Epic Iris 소개/설정 문서와 실제 UE 5.7.1 빌드 검증: Iris는 기존 replication system과 함께 존재하는 opt-in 시스템이다. 엔진은 Iris를 컴파일하지만 엔진 기본 복제 경로는 기존 시스템이며, IrisDemo는 포트폴리오 의도에 맞게 플러그인 활성화, `SetupIrisSupport(Target)`, `DefaultEngine.ini` 설정으로 Iris를 프로젝트 기본값으로 둔다. Generic은 같은 조건의 비교용 control run으로 명시 실행한다. 현재 설치된 UE 5.7.1에서는 `TargetRules.bUseIris`가 없어 Target.cs에 쓰면 빌드가 실패한다.
 - Epic UObject 복제 문서: Iris는 virtual `ReplicateSubobjects` 방식을 지원하지 않고 Registered Subobjects List를 요구한다. 순수 `UObject`를 Iris로 복제하려면 `IsSupportedForNetworking`, `GetLifetimeReplicatedProps`, `AddReplicatedSubObject`, 필요 시 `RegisterReplicationFragments`를 이해해야 한다.
 - Epic migration 문서: Replication Graph와 Iris는 동시에 쓰는 관계가 아니며, Iris Filtering/Prioritization이 Replication Graph의 역할을 대체하는 방향이다. 따라서 “Replication Graph Deprecated”라고만 적기보다 “Iris와 동시 사용 불가, 대체 개념은 Filtering/Prioritization”으로 설명한다.
 
@@ -280,7 +280,7 @@ net.Iris.PushModelMode=1
 -UseIrisReplication=0
 ```
 
-비교 실행은 같은 맵, 같은 bot seed, 같은 network emulation profile, 같은 run duration을 사용한다.
+IrisDemo는 `DefaultEngine.ini`와 로컬 실행 배치 기준으로 Iris를 기본값으로 둔다. Generic 실행은 `--no-iris` 또는 `-UseIrisReplication=0`을 명시해 기존 replication path를 비교하기 위한 control run으로 사용한다. 비교 실행은 같은 맵, 같은 bot seed, 같은 network emulation profile, 같은 run duration을 사용한다.
 
 ---
 
@@ -318,9 +318,9 @@ net.Iris.PushModelMode=1
 
 ## 9. 다음 단계
 
-1. Scenario A를 dedicated server + 3 clients에서 재검증하고 서버 형태/옵션 적용 경로를 문서화
-2. Generic/Iris run metadata를 csv/json으로 저장하는 최소 측정 하네스 작성
-3. Unreal Insights / CSV Profiling / NetTrace 수집 경로를 정리하고 `PerformanceRuns.md`에 결과 기록
+1. Scenario A에서 actor count 외의 outgoing bandwidth 또는 replicated object count 중 최소 1개를 RunId 폴더에 기록
+2. Unreal Insights / CSV Profiling / NetTrace 수집 경로를 정리하고 `PerformanceRuns.md`에 결과 기록
+3. `DebuggingNotes.md`에 설정/실행 모드 차이와 실패 로그 분석을 기록
 4. Scenario A의 A7 마무리 문서화 완료
 5. Scenario C의 UObject loadout/cargo를 최소 기능으로 연결
 6. Scenario B의 prioritization/push model을 성능 측정과 연결

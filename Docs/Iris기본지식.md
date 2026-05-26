@@ -82,7 +82,7 @@ net.Iris.PushModelMode=1
 -UseIrisReplication=0
 ```
 
-포트폴리오 데모에서는 이 스위치를 이용해 같은 시나리오를 Generic/Iris로 반복 실행할 수 있어야 한다.
+IrisDemo의 기본 실행 경로는 `DefaultEngine.ini`와 로컬 실행 배치 모두 Iris 활성화다. 포트폴리오 데모에서는 Iris를 자연스러운 기본값으로 두고, Generic은 기존 replication path와 비교하기 위한 control run으로 명시 실행한다. 같은 시나리오를 비교할 때는 seed/count/duration을 고정하고 `-UseIrisReplication=0`, `-UseIrisReplication=1`만 바꾼다.
 
 UE 5.7.1에서 `-UseIrisReplication=1`은 `net.Iris.UseIrisReplication` CVar 텍스트와 별도로 NetDriver 선택 단계에서 command line override로 처리된다. 따라서 실행 중 실제 복제 시스템을 판단할 때는 CVar 값만 보지 말고, 가능하면 active `UNetDriver::IsUsingIrisReplication()`을 우선 확인한다. Scenario A 로그도 이 기준으로 `Mode=Iris/Generic`을 남긴다.
 

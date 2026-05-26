@@ -21,6 +21,7 @@
 현재 프로젝트는 이미 튜토리얼 수준을 넘어서는 기반을 갖고 있다.
 
 - Generic/Iris 실행 스위치가 있다.
+- 프로젝트 기본 replication mode를 Iris로 고정하고, Generic은 비교용 control run으로 명시 실행하는 기준이 있다.
 - role별 replication 결과가 실제로 다르게 나온다.
 - Commander/FieldAgent/Spectator의 actor 수신 차이를 로그로 기록했다.
 - UE 5.7.1 설정 제약, `TargetRules.bUseIris` 미존재, `SetupIrisSupport(Target)` 유지 같은 환경 차이를 문서화했다.
@@ -31,8 +32,8 @@
 현재 부족한 부분은 기능보다 측정 체계다.
 
 - actor count는 있지만 bandwidth, replicated object count, relevant object count가 아직 없다.
-- PIE 결과는 있지만 dedicated server 검증이 없다.
-- 실행 환경이 완전히 재현 가능한 형태로 고정되어 있지 않다.
+- dedicated server + 3 clients의 Generic/Iris actor count 검증은 1차로 끝났지만, 성능 수치까지 포함한 반복 run은 아직 부족하다.
+- 실행 환경은 RunId와 기본 옵션을 저장하기 시작했지만, 프로파일링 산출물까지 완전히 묶인 형태는 아직 아니다.
 - Unreal Insights / NetTrace / CSV Profiling 결과가 아직 산출물로 남지 않았다.
 - 문제가 생겼을 때 어떻게 추적했는지를 보여주는 디버깅 사례가 부족하다.
 
@@ -87,6 +88,12 @@
 - local 실행 배치는 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 client에 공통 전달한다.
 - 다음 보강은 actor count 외의 `outgoing bandwidth`, replicated object count, CSV/NetTrace 중 하나를 같은 RunId 아래에 남기는 것이다.
 
+2026-05-26 기준 실행 모드 기준:
+
+- IrisDemo의 기본 replication mode는 Iris다 (`DefaultEngine.ini`, local run batch 모두 `UseIrisReplication=1`).
+- Generic은 기본값이 아니라 기존 replication path와 비교하기 위한 control run이며, `--no-iris` 또는 `-UseIrisReplication=0`으로 명시 실행한다.
+- 따라서 Generic/Iris 비교 문서에서는 “기본값이 무엇인가”보다 “동일 조건에서 replication mode override만 바꿨는가”를 검증 기준으로 둔다.
+
 ### Phase 3. Unreal Insights / NetTrace / CSV 수집
 
 비교 run은 최소 다음 네 가지를 둔다.
@@ -134,8 +141,7 @@
 
 ## 7. 다음 우선순위
 
-1. Scenario A dedicated server + 3 clients 검증
-2. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
-3. outgoing bandwidth 또는 replicated object count 중 최소 1개 기록
-4. `PerformanceRuns.md`와 `DebuggingNotes.md` 생성
-5. Scenario C UObject/subobject replication 최소 구현 착수
+1. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
+2. outgoing bandwidth 또는 replicated object count 중 최소 1개 기록
+3. `PerformanceRuns.md`와 `DebuggingNotes.md` 생성
+4. Scenario C UObject/subobject replication 최소 구현 착수

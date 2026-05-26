@@ -49,7 +49,7 @@ Tools\BuildEditor.bat -Verbose
 Tools\RunLocalMultiplay.bat [--no-iris] [추가인자]
 ```
 
-기본적으로 Iris 복제가 활성화되며 (`-UseIrisReplication=1`), `--no-iris` 옵션을 제공하면 Iris 복제를 비활성화 (`-UseIrisReplication=0`)한 상태로 실행한다. 그 외에 지정된 인자(예: `-ScenarioARunDuration=30`)는 서버와 모든 클라이언트에 그대로 전달된다.
+프로젝트 기본 설정은 `Config/DefaultEngine.ini`의 `net.Iris.UseIrisReplication=1`이다. 로컬 실행 배치도 기본적으로 Iris 복제를 명시 활성화하며 (`-UseIrisReplication=1`), `--no-iris` 옵션을 제공하면 비교용 Generic replication run으로 전환한다 (`-UseIrisReplication=0`). 그 외에 지정된 인자(예: `-ScenarioARunDuration=30`)는 서버와 모든 클라이언트에 그대로 전달된다.
 
 빌드된 `Binaries\Win64\IrisDemoServer.exe`와 `Binaries\Win64\IrisDemoClient.exe`로 같은 구성을 실행하려면 다음 배치를 사용한다.
 
@@ -69,4 +69,4 @@ A3 baseline은 filtering 전 control run이다. 실제 측정은 [ScenarioA_Role
 -ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30
 ```
 
-Generic/Iris 비교는 같은 조건에서 `-UseIrisReplication=0`, `-UseIrisReplication=1`만 바꾼다. 각 local client에서는 console에서 `IrisRelayLogBaselineSnapshot`을 실행해 수신 actor count를 로그로 남긴다.
+Generic/Iris 비교는 같은 조건에서 `-UseIrisReplication=0`, `-UseIrisReplication=1`만 바꾼다. 이 프로젝트의 자연스러운 기본 run은 Iris이며, Generic은 기존 replication path와 비교하기 위해 명시적으로 끄는 control run이다. 각 local client에서는 console에서 `IrisRelayLogBaselineSnapshot`을 실행해 수신 actor count를 로그로 남긴다.
