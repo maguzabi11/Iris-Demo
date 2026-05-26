@@ -22,6 +22,7 @@ if not exist "%CLIENT_EXE%" (
 
 :: Default settings
 set "USE_IRIS=1"
+set "REPLICATION_MODE_OPTION=--iris"
 set "PORT=7777"
 set "DRY_RUN=0"
 set "SERVER_STARTUP_WAIT=5"
@@ -36,20 +37,26 @@ set "CURRENT_ARG=%~1"
 set "NEXT_ARG=%~2"
 if /i "!CURRENT_ARG!"=="--no-iris" (
     set "USE_IRIS=0"
+    set "REPLICATION_MODE_OPTION=--no-iris"
 ) else if /i "!CURRENT_ARG!"=="--iris" (
     set "USE_IRIS=1"
+    set "REPLICATION_MODE_OPTION=--iris"
 ) else if /i "!CURRENT_ARG!"=="-UseIrisReplication" (
     if "%~2"=="0" (
         set "USE_IRIS=0"
+        set "REPLICATION_MODE_OPTION=--no-iris"
         shift
     ) else if "%~2"=="1" (
         set "USE_IRIS=1"
+        set "REPLICATION_MODE_OPTION=--iris"
         shift
     )
 ) else if /i "!CURRENT_ARG!"=="-UseIrisReplication=0" (
     set "USE_IRIS=0"
+    set "REPLICATION_MODE_OPTION=--no-iris"
 ) else if /i "!CURRENT_ARG!"=="-UseIrisReplication=1" (
     set "USE_IRIS=1"
+    set "REPLICATION_MODE_OPTION=--iris"
 ) else if /i "!CURRENT_ARG!"=="--dry-run" (
     set "DRY_RUN=1"
 ) else if /i "!CURRENT_ARG!"=="--server-wait-timeout" (
@@ -88,6 +95,7 @@ echo Binaries Dir: %BINARIES_DIR%
 echo Server:       %SERVER_EXE%
 echo Client:       %CLIENT_EXE%
 echo Iris Enabled: %USE_IRIS%
+echo Mode Option:  %REPLICATION_MODE_OPTION%
 echo Port:         %PORT%
 echo Run Id:       %SCENARIO_RUN_ID%
 echo Dry Run:      %DRY_RUN%

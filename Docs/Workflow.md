@@ -46,15 +46,15 @@ Tools\BuildEditor.bat -Verbose
 테스트 편의를 위해 전용 서버 1개와 클라이언트 3개를 동시에 실행하는 배치 스크립트를 제공한다. 이 스크립트는 uncooked 에디터 바이너리를 통해 세션을 시작하므로 별도의 패키징 없이 즉시 로컬에서 테스트할 수 있다.
 
 ```bat
-Tools\RunLocalMultiplay.bat [--no-iris] [추가인자]
+Tools\RunLocalMultiplay.bat [--iris|--no-iris] [추가인자]
 ```
 
-프로젝트 기본 설정은 `Config/DefaultEngine.ini`의 `net.Iris.UseIrisReplication=1`이다. 로컬 실행 배치도 기본적으로 Iris 복제를 명시 활성화하며 (`-UseIrisReplication=1`), `--no-iris` 옵션을 제공하면 비교용 Generic replication run으로 전환한다 (`-UseIrisReplication=0`). 그 외에 지정된 인자(예: `-ScenarioARunDuration=30`)는 서버와 모든 클라이언트에 그대로 전달된다.
+프로젝트 기본 설정은 `Config/DefaultEngine.ini`의 `net.Iris.UseIrisReplication=1`이다. 로컬 실행 배치도 기본 mode option을 `--iris`로 두고 Iris 복제를 명시 활성화하며 (`-UseIrisReplication=1`), `--no-iris` 옵션을 제공하면 비교용 Generic replication run으로 전환한다 (`-UseIrisReplication=0`). 그 외에 지정된 인자(예: `-ScenarioARunDuration=30`)는 서버와 모든 클라이언트에 그대로 전달된다.
 
 빌드된 `Binaries\Win64\IrisDemoServer.exe`와 `Binaries\Win64\IrisDemoClient.exe`로 같은 구성을 실행하려면 다음 배치를 사용한다.
 
 ```bat
-Tools\RunLocalBinariesMultiplay.bat [--no-iris] [추가인자]
+Tools\RunLocalBinariesMultiplay.bat [--iris|--no-iris] [추가인자]
 ```
 
 이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. 서버는 PowerShell 래핑 없이 exe를 직접 실행하고, `-log -stdout -FullStdOutLogOutput`으로 서버 로그 창과 UE 로그 출력을 사용한다. 서버 실행 후에는 기본 5초 동안 단순 대기한 뒤 클라이언트를 실행한다. 대기 시간을 바꾸려면 `--server-startup-wait 10`처럼 지정한다. 기존 호환용으로 `--server-wait-timeout 10`도 같은 의미로 받으며, 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.

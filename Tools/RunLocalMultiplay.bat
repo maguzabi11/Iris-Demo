@@ -23,6 +23,7 @@ if not exist "%PROJECT_FILE%" (
 
 :: 기본 설정값
 set "USE_IRIS=1"
+set "REPLICATION_MODE_OPTION=--iris"
 set "PORT=7777"
 set "SCENARIO_ARGS=-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2"
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "SCENARIO_RUN_ID=ScenarioA_%%I"
@@ -33,12 +34,16 @@ set "EXTRA_ARGS="
 if "%~1"=="" goto end_loop
 if /i "%~1"=="--no-iris" (
     set "USE_IRIS=0"
+    set "REPLICATION_MODE_OPTION=--no-iris"
 ) else if /i "%~1"=="--iris" (
     set "USE_IRIS=1"
+    set "REPLICATION_MODE_OPTION=--iris"
 ) else if /i "%~1"=="-UseIrisReplication=0" (
     set "USE_IRIS=0"
+    set "REPLICATION_MODE_OPTION=--no-iris"
 ) else if /i "%~1"=="-UseIrisReplication=1" (
     set "USE_IRIS=1"
+    set "REPLICATION_MODE_OPTION=--iris"
 ) else if /i "%~1"=="--run-id" (
     set "SCENARIO_RUN_ID=%~2"
     shift
@@ -59,6 +64,7 @@ echo ===================================================
 echo Engine Dir: %UE_ENGINE_DIR%
 echo Project:    %PROJECT_FILE%
 echo Iris Enabled: %USE_IRIS%
+echo Mode Option: %REPLICATION_MODE_OPTION%
 echo Port:       %PORT%
 echo Run Id:     %SCENARIO_RUN_ID%
 echo Base Args:  %SCENARIO_ARGS%
