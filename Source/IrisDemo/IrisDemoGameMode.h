@@ -71,6 +71,8 @@ private:
 
 	void WriteScenarioARunMetadata() const;
 
+	void LogScenarioANetworkMetricsSnapshot() const;
+
 	int32 NextScenarioARoleIndex = 0;
 
 	int32 NextScenarioAFieldAgentZoneId = 0;
@@ -89,6 +91,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.0"))
 	float ScenarioARunDuration = 30.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.0"))
+	float ScenarioANetworkMetricsInterval = 1.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	bool bScenarioAEnableRoleFiltering = false;
@@ -131,4 +136,6 @@ private:
 	FTimerHandle ScenarioABaselineCompleteTimerHandle;
 
 	FTimerHandle ScenarioAFilterRefreshTimerHandle;
+
+	FTimerHandle ScenarioANetworkMetricsTimerHandle;
 };

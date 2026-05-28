@@ -88,6 +88,12 @@
 - local 실행 배치는 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 client에 공통 전달한다.
 - 다음 보강은 actor count 외의 `outgoing bandwidth`, replicated object count, CSV/NetTrace 중 하나를 같은 RunId 아래에 남기는 것이다.
 
+2026-05-28 기준 2차 측정 하네스:
+
+- 서버는 `Saved/ScenarioA/Runs/<RunId>/server_network_metrics.csv`에 `UNetDriver` 전체 및 client connection별 outgoing bandwidth를 append한다.
+- 기록 값은 `OutBytesPerSecond`, `OutTotalBytes`, `OutPacketsPerSecond`, `OutTotalPackets`를 기본으로 한다.
+- 다음 보강은 이 CSV를 Generic/Iris 비교 표로 정리하는 `PerformanceRuns.md`와 실패/차이 분석용 `DebuggingNotes.md`를 만드는 것이다.
+
 2026-05-26 기준 실행 모드 기준:
 
 - IrisDemo의 기본 replication mode는 Iris다 (`DefaultEngine.ini`, local run batch 모두 `UseIrisReplication=1`).
@@ -141,7 +147,7 @@
 
 ## 7. 다음 우선순위
 
-1. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
-2. outgoing bandwidth 또는 replicated object count 중 최소 1개 기록
-3. `PerformanceRuns.md`와 `DebuggingNotes.md` 생성
+1. `PerformanceRuns.md`와 `DebuggingNotes.md` 생성
+2. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
+3. replicated object count 기록 경로 확인
 4. Scenario C UObject/subobject replication 최소 구현 착수

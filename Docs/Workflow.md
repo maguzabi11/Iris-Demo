@@ -70,3 +70,5 @@ A3 baseline은 filtering 전 control run이다. 실제 측정은 [ScenarioA_Role
 ```
 
 Generic/Iris 비교는 같은 조건에서 `-UseIrisReplication=0`, `-UseIrisReplication=1`만 바꾼다. 이 프로젝트의 자연스러운 기본 run은 Iris이며, Generic은 기존 replication path와 비교하기 위해 명시적으로 끄는 control run이다. 각 local client는 `-ScenarioAAutoSnapshotDelay=30` 기준으로 snapshot CSV를 자동 기록한다. 필요할 때는 console에서 `IrisRelayLogBaselineSnapshot`을 실행해 수동 snapshot도 추가로 남길 수 있다.
+
+서버는 같은 RunId 폴더에 `server_network_metrics.csv`를 생성하고, `ScenarioANetworkMetricsInterval` 기본값 기준으로 NetDriver 전체 및 client connection별 outgoing bandwidth를 append한다.

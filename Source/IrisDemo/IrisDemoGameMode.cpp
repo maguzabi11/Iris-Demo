@@ -3,6 +3,7 @@
 #include "IrisDemoGameMode.h"
 
 #include "GameFramework/PlayerController.h"
+#include "Engine/NetDriver.h"
 #include "Iris/ReplicationSystem/Filtering/NetObjectFilter.h"
 #include "Iris/ReplicationSystem/NetObjectGroupHandle.h"
 #include "Iris/ReplicationSystem/ObjectReplicationBridge.h"
@@ -283,6 +284,7 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	EScenarioAOptionSource SupplyCrateCountSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource UpdateIntervalSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource RunDurationSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource NetworkMetricsIntervalSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource RunIdSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource RoleFilteringRuntimeSource = EScenarioAOptionSource::None;
 
@@ -298,6 +300,7 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount, SupplyCrateCountSource);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval, UpdateIntervalSource);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration, RunDurationSource);
+	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsInterval"), ScenarioANetworkMetricsInterval, NetworkMetricsIntervalSource);
 
 	FString RawRunId;
 	if (TryReadScenarioAOptionValue(Options, TEXT("ScenarioARunId"), RawRunId, RunIdSource))
@@ -323,8 +326,9 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	ScenarioASupplyCrateCount = FMath::Max(0, ScenarioASupplyCrateCount);
 	ScenarioASensorUpdateInterval = FMath::Max(0.1f, ScenarioASensorUpdateInterval);
 	ScenarioARunDuration = FMath::Max(0.0f, ScenarioARunDuration);
+	ScenarioANetworkMetricsInterval = FMath::Max(0.0f, ScenarioANetworkMetricsInterval);
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RunId=%s RunIdSource=%s RoleFiltering=%s RoleFilteringSource=%s Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s]"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RunId=%s RunIdSource=%s RoleFiltering=%s RoleFilteringSource=%s Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s NetworkMetricsInterval:%s]"),
 		*Options,
 		FCommandLine::Get(),
 		*GetIrisReplicationCommandLineOverrideLabel(),
@@ -338,7 +342,8 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		GetScenarioAOptionSourceLabel(DroneCountSource),
 		GetScenarioAOptionSourceLabel(SupplyCrateCountSource),
 		GetScenarioAOptionSourceLabel(UpdateIntervalSource),
-		GetScenarioAOptionSourceLabel(RunDurationSource));
+		GetScenarioAOptionSourceLabel(RunDurationSource),
+		GetScenarioAOptionSourceLabel(NetworkMetricsIntervalSource));
 }
 
 void AIrisDemoGameMode::BeginPlay()
@@ -372,6 +377,16 @@ void AIrisDemoGameMode::BeginPlay()
 			ScenarioARunDuration,
 			false);
 	}
+
+	if (ScenarioANetworkMetricsInterval > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(
+			ScenarioANetworkMetricsTimerHandle,
+			this,
+			&AIrisDemoGameMode::LogScenarioANetworkMetricsSnapshot,
+			ScenarioANetworkMetricsInterval,
+			true);
+	}
 }
 
 void AIrisDemoGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -379,6 +394,7 @@ void AIrisDemoGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorldTimerManager().ClearTimer(ScenarioASensorUpdateTimerHandle);
 	GetWorldTimerManager().ClearTimer(ScenarioABaselineCompleteTimerHandle);
 	GetWorldTimerManager().ClearTimer(ScenarioAFilterRefreshTimerHandle);
+	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -888,7 +904,7 @@ void AIrisDemoGameMode::LogScenarioABaselineConfig() const
 {
 	const int32 DetailActorTotal = ScenarioASensors.Num() + ScenarioADrones.Num() + ScenarioASupplyCrates.Num();
 	const int32 SummaryActorTotal = IsValid(ScenarioAOperationalSummary) ? 1 : 0;
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline config: Mode=%s Seed=%d SensorCount=%d DroneCount=%d SupplyCrateCount=%d SummaryCount=%d DetailActorTotal=%d UpdateInterval=%.2f RunDuration=%.2f RoleFiltering=%s ExpectedPreFilterClientDetailActors=%d"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline config: Mode=%s Seed=%d SensorCount=%d DroneCount=%d SupplyCrateCount=%d SummaryCount=%d DetailActorTotal=%d UpdateInterval=%.2f RunDuration=%.2f NetworkMetricsInterval=%.2f RoleFiltering=%s ExpectedPreFilterClientDetailActors=%d"),
 		*GetIrisReplicationModeLabel(GetWorld()),
 		ScenarioASeed,
 		ScenarioASensors.Num(),
@@ -898,6 +914,7 @@ void AIrisDemoGameMode::LogScenarioABaselineConfig() const
 		DetailActorTotal,
 		ScenarioASensorUpdateInterval,
 		ScenarioARunDuration,
+		ScenarioANetworkMetricsInterval,
 		bScenarioAEnableRoleFiltering ? TEXT("Enabled") : TEXT("Disabled"),
 		DetailActorTotal);
 }
@@ -941,6 +958,7 @@ void AIrisDemoGameMode::WriteScenarioARunMetadata() const
 		"  \"detailActorTotal\": %d,\n"
 		"  \"updateInterval\": %.3f,\n"
 		"  \"runDuration\": %.3f,\n"
+		"  \"networkMetricsInterval\": %.3f,\n"
 		"  \"runIdSource\": %s,\n"
 		"  \"commandLine\": %s\n"
 		"}\n"),
@@ -960,6 +978,7 @@ void AIrisDemoGameMode::WriteScenarioARunMetadata() const
 		DetailActorTotal,
 		ScenarioASensorUpdateInterval,
 		ScenarioARunDuration,
+		ScenarioANetworkMetricsInterval,
 		*QuoteScenarioAJsonString(ScenarioARunIdSource),
 		*QuoteScenarioAJsonString(FCommandLine::Get()));
 
@@ -971,5 +990,95 @@ void AIrisDemoGameMode::WriteScenarioARunMetadata() const
 	else
 	{
 		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A run metadata save failed: RunId=%s Path=%s"), *RunId, *RunMetadataPath);
+	}
+}
+
+void AIrisDemoGameMode::LogScenarioANetworkMetricsSnapshot() const
+{
+	const UWorld* World = GetWorld();
+	const UNetDriver* NetDriver = World ? World->GetNetDriver() : nullptr;
+	if (!NetDriver)
+	{
+		return;
+	}
+
+	const FString RunId = MakeScenarioARunId(ScenarioARunId);
+	const FString RunDirectory = GetScenarioARunDirectory(RunId);
+	IFileManager::Get().MakeDirectory(*RunDirectory, true);
+
+	const FString MetricsCsvPath = FPaths::Combine(RunDirectory, TEXT("server_network_metrics.csv"));
+	const bool bWriteHeader = !IFileManager::Get().FileExists(*MetricsCsvPath);
+	FString CsvText;
+	if (bWriteHeader)
+	{
+		CsvText += TEXT("Timestamp,RunId,Mode,NetMode,Scope,ConnectionId,Controller,Role,Zone,OutBytesPerSecond,OutTotalBytes,OutPacketsPerSecond,OutTotalPackets,OutBunches,OutTotalBunches,ConnectionCount");
+		CsvText += LINE_TERMINATOR;
+	}
+
+	const FString Timestamp = FDateTime::Now().ToIso8601();
+	const FString Mode = GetIrisReplicationModeLabel(World);
+	const FString NetMode = GetScenarioANetModeLabel(World);
+	const int32 ConnectionCount = NetDriver->ClientConnections.Num();
+
+	CsvText += FString::Printf(TEXT("%s,%s,%s,%s,NetDriver,-1,Server,Server,-1,%u,%u,%u,%u,%u,%u,%d%s"),
+		*QuoteScenarioAJsonString(Timestamp),
+		*QuoteScenarioAJsonString(RunId),
+		*QuoteScenarioAJsonString(Mode),
+		*QuoteScenarioAJsonString(NetMode),
+		NetDriver->OutBytesPerSecond,
+		NetDriver->OutTotalBytes,
+		NetDriver->OutPackets,
+		NetDriver->OutTotalPackets,
+		NetDriver->OutBunches,
+		NetDriver->OutTotalBunches,
+		ConnectionCount,
+		LINE_TERMINATOR);
+
+	for (const UNetConnection* Connection : NetDriver->ClientConnections)
+	{
+		if (!Connection)
+		{
+			continue;
+		}
+
+		const APlayerController* PlayerController = Cast<APlayerController>(Connection->OwningActor);
+		const ARelayPlayerState* RelayPlayerState = PlayerController ? PlayerController->GetPlayerState<ARelayPlayerState>() : nullptr;
+		const FString ControllerName = PlayerController ? PlayerController->GetName() : TEXT("Unknown");
+		const FString RoleName = RelayPlayerState ? RelayPlayerState->GetOperatorRoleName() : TEXT("Unassigned");
+		const int32 AssignedZoneId = RelayPlayerState ? RelayPlayerState->GetAssignedZoneId() : INDEX_NONE;
+		const int32 ConnectionId = Connection->GetConnectionHandle().IsValid()
+			? static_cast<int32>(Connection->GetConnectionHandle().GetParentConnectionId())
+			: INDEX_NONE;
+
+		CsvText += FString::Printf(TEXT("%s,%s,%s,%s,Connection,%d,%s,%s,%d,%d,%d,%d,%d,0,0,%d%s"),
+			*QuoteScenarioAJsonString(Timestamp),
+			*QuoteScenarioAJsonString(RunId),
+			*QuoteScenarioAJsonString(Mode),
+			*QuoteScenarioAJsonString(NetMode),
+			ConnectionId,
+			*QuoteScenarioAJsonString(ControllerName),
+			*QuoteScenarioAJsonString(RoleName),
+			AssignedZoneId,
+			Connection->OutBytesPerSecond,
+			Connection->OutTotalBytes,
+			Connection->OutPacketsPerSecond,
+			Connection->OutTotalPackets,
+			ConnectionCount,
+			LINE_TERMINATOR);
+	}
+
+	if (FFileHelper::SaveStringToFile(CsvText, *MetricsCsvPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM, &IFileManager::Get(), FILEWRITE_Append))
+	{
+		UE_LOG(LogIrisDemo, Log, TEXT("Scenario A network metrics csv appended: RunId=%s Path=%s OutBytesPerSecond=%u Connections=%d"),
+			*RunId,
+			*MetricsCsvPath,
+			NetDriver->OutBytesPerSecond,
+			ConnectionCount);
+	}
+	else
+	{
+		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A network metrics csv append failed: RunId=%s Path=%s"),
+			*RunId,
+			*MetricsCsvPath);
 	}
 }

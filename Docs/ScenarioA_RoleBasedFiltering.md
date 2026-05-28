@@ -319,6 +319,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 자동 파일 기록:
 
 - 서버 `GameMode`는 BeginPlay 이후 `Saved/ScenarioA/Runs/<RunId>/run.json`을 저장한다.
+- 서버 `GameMode`는 `ScenarioANetworkMetricsInterval`이 0보다 크면 같은 RunId의 `server_network_metrics.csv`에 NetDriver 전체 및 connection별 outgoing bandwidth row를 주기적으로 append한다.
 - 각 local client는 `-ScenarioAAutoSnapshotDelay=<seconds>`가 0보다 크면 같은 RunId의 `client_snapshots.csv`에 `Source=Auto` row를 한 번 append한다. `IrisRelayLogBaselineSnapshot`을 수동 실행하면 같은 파일에 `Source=Console` row를 추가 append한다.
 - `RunId`는 `-ScenarioARunId=<id>`로 넘기며, `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 기본적으로 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 모든 client에 공통 전달한다.
 - 수동으로 고정하려면 배치 실행 시 `--run-id ScenarioA_manual_001`처럼 넘긴다.
@@ -328,7 +329,18 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - `runId`, `timestamp`, `map`, `serverType`, `mode`
 - `irisCommandLineOverride`, `roleFiltering`, `roleFilteringSource`, `runIdSource`
 - `seed`, `sensorCount`, `droneCount`, `supplyCrateCount`, `summaryCount`, `detailActorTotal`
-- `updateInterval`, `runDuration`, `commandLine`
+- `updateInterval`, `runDuration`, `networkMetricsInterval`, `commandLine`
+
+`server_network_metrics.csv` 컬럼:
+
+```csv
+Timestamp,RunId,Mode,NetMode,Scope,ConnectionId,Controller,Role,Zone,
+OutBytesPerSecond,OutTotalBytes,OutPacketsPerSecond,OutTotalPackets,
+OutBunches,OutTotalBunches,ConnectionCount
+```
+
+- `Scope=NetDriver` row는 서버 NetDriver 전체 outgoing bytes/sec와 누적 송신량을 기록한다.
+- `Scope=Connection` row는 각 client connection별 outgoing bytes/sec와 누적 송신량을 기록한다.
 
 `client_snapshots.csv` 컬럼:
 
@@ -362,6 +374,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 - 2026-05-20: 사용자 제공 Generic snapshot 기준으로 Commander/FieldAgent/Spectator 모두 `DetailActorTotal=12`, `SummaryCount=1`을 수신했다. role과 무관하게 `SensorZones=2/2/2`, `DroneZones=1/1/1`, `SupplyCrateZones=1/1/1`이므로 Generic baseline 기대값과 일치한다.
 - 2026-05-22: `Docs/학습/결과임시기록.md`의 local binary snapshot 기준으로 listen server와 dedicated server 모두 Generic baseline에서 Commander/FieldAgent/Spectator가 `DetailActorTotal=12`, `SummaryCount=1`을 수신했다. 각 role의 zone 분포도 `SensorZones=2/2/2`, `DroneZones=1/1/1`, `SupplyCrateZones=1/1/1`로 동일해 A3 control run 기대값과 일치한다.
 - 2026-05-22: `-ScenarioARunId` 기반 run 폴더를 추가했다. 서버는 `run.json`에 실행 조건을 저장하고, `IrisRelayLogBaselineSnapshot`은 `client_snapshots.csv`에 local client 수신 결과를 append한다. `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 같은 RunId를 서버와 client에 공통 전달한다.
+- 2026-05-28: 서버가 `server_network_metrics.csv`에 NetDriver 전체와 connection별 `OutBytesPerSecond`, `OutTotalBytes`를 append하도록 추가했다. 첫 측정값 수집 경로는 engine `UNetDriver`/`UNetConnection` 통계를 사용한다.
 
 ### A4. Role-Based Filtering 구현
 
@@ -423,7 +436,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 - [x] Generic/Iris 양쪽에서 실행 성공
 - [x] 역할별 expected/actual actor count 표 작성
 - [x] false positive 복제 목록 확인
-- [ ] bandwidth 또는 replicated object count 수집 가능성 확인
+- [x] bandwidth 또는 replicated object count 수집 가능성 확인
 
 완료 기준:
 
@@ -434,7 +447,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 - [x] dedicated server + 3 clients에서 Generic/Iris 결과 재현
 - [x] PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
 - [x] run id, seed, mode, role filtering, actor count, duration을 파일로 저장
-- [ ] actor count 외에 outgoing bandwidth 또는 replicated object count 중 최소 1개 수집
+- [x] actor count 외에 outgoing bandwidth 또는 replicated object count 중 최소 1개 수집
 - [ ] Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
 - [ ] 실패 또는 불일치 사례가 생기면 원인 분석 로그를 `DebuggingNotes.md`에 기록
 
