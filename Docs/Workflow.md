@@ -59,7 +59,22 @@ Scenario A의 코드 기본값은 성능 비교용 조건이다. 별도 actor co
 Tools\RunLocalBinariesMultiplay.bat [--iris|--no-iris] [추가인자]
 ```
 
-이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. C++ 측정 기본값이나 CSV schema를 바꾼 뒤에는 exe가 이미 있어도 반드시 두 빌드를 다시 실행한다. 서버는 PowerShell 래핑 없이 exe를 직접 실행하고, `-log -stdout -FullStdOutLogOutput`으로 서버 로그 창과 UE 로그 출력을 사용한다. 서버 실행 후에는 기본 5초 동안 단순 대기한 뒤 클라이언트를 실행한다. 대기 시간을 바꾸려면 `--server-startup-wait 10`처럼 지정한다. 기존 호환용으로 `--server-wait-timeout 10`도 같은 의미로 받으며, 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.
+이 배치는 실행 전에 서버/클라이언트 exe 존재 여부를 확인한다. 바이너리가 없으면 먼저 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`로 Development Server/Client 타깃을 빌드한다. C++ 측정 기본값이나 CSV schema를 바꾼 뒤에는 exe가 이미 있어도 반드시 두 빌드를 다시 실행한다. Blueprint, map, asset, GameMode default object, cooked content가 바뀌었거나 `Saved\Cooked` 로드 오류가 나면 `Tools\CookClientServer.bat`로 Client/Server cooked content도 다시 만든다. 서버는 PowerShell 래핑 없이 exe를 직접 실행하고, `-log -stdout -FullStdOutLogOutput`으로 서버 로그 창과 UE 로그 출력을 사용한다. 서버 실행 후에는 기본 5초 동안 단순 대기한 뒤 클라이언트를 실행한다. 대기 시간을 바꾸려면 `--server-startup-wait 10`처럼 지정한다. 기존 호환용으로 `--server-wait-timeout 10`도 같은 의미로 받으며, 창을 띄우지 않고 경로와 최종 인자만 확인하려면 `--dry-run`을 붙인다.
+
+바이너리 실행 전 전체 갱신 순서:
+
+```bat
+Tools\BuildServer.bat
+Tools\BuildClient.bat
+Tools\CookClientServer.bat
+```
+
+개별 cook만 필요하면 아래처럼 실행한다.
+
+```bat
+Tools\CookClient.bat
+Tools\CookServer.bat
+```
 
 ## Scenario A Baseline 기록
 
