@@ -71,6 +71,10 @@ private:
 
 	void WriteScenarioARunMetadata() const;
 
+	void StartScenarioANetworkMetrics();
+
+	void StopScenarioANetworkMetrics();
+
 	void LogScenarioANetworkMetricsSnapshot() const;
 
 	int32 NextScenarioARoleIndex = 0;
@@ -84,16 +88,22 @@ private:
 	TSubclassOf<ARelaySensorActor> ScenarioASensorClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0"))
-	int32 ScenarioASensorCount = 6;
+	int32 ScenarioASensorCount = 60;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.1"))
 	float ScenarioASensorUpdateInterval = 2.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.0"))
-	float ScenarioARunDuration = 30.0f;
+	float ScenarioARunDuration = 95.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.0"))
 	float ScenarioANetworkMetricsInterval = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.0"))
+	float ScenarioANetworkMetricsStartDelay = 35.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0.0"))
+	float ScenarioANetworkMetricsDuration = 60.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	bool bScenarioAEnableRoleFiltering = false;
@@ -108,13 +118,13 @@ private:
 	TSubclassOf<ARelayDroneActor> ScenarioADroneClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0"))
-	int32 ScenarioADroneCount = 3;
+	int32 ScenarioADroneCount = 30;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	TSubclassOf<ARelaySupplyCrateActor> ScenarioASupplyCrateClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A", meta = (ClampMin = "0"))
-	int32 ScenarioASupplyCrateCount = 3;
+	int32 ScenarioASupplyCrateCount = 30;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	TSubclassOf<ARelayOperationalSummaryActor> ScenarioAOperationalSummaryClass;
@@ -137,5 +147,11 @@ private:
 
 	FTimerHandle ScenarioAFilterRefreshTimerHandle;
 
+	FTimerHandle ScenarioANetworkMetricsStartTimerHandle;
+
 	FTimerHandle ScenarioANetworkMetricsTimerHandle;
+
+	FTimerHandle ScenarioANetworkMetricsStopTimerHandle;
+
+	double ScenarioANetworkMetricsWindowStartTime = 0.0;
 };

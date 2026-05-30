@@ -208,8 +208,9 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 		return;
 	}
 
-	float AutoSnapshotDelay = 0.0f;
-	if (!FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoSnapshotDelay="), AutoSnapshotDelay) || AutoSnapshotDelay <= 0.0f)
+	float AutoSnapshotDelay = 95.0f;
+	FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoSnapshotDelay="), AutoSnapshotDelay);
+	if (AutoSnapshotDelay <= 0.0f)
 	{
 		return;
 	}

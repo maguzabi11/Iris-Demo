@@ -288,6 +288,8 @@ IrisDemo는 `DefaultEngine.ini`와 로컬 실행 배치 기준으로 Iris를 기
 
 세부 측정/디버깅 보강 계획은 [Portfolio_Performance_Debugging_Plan.md](./Portfolio_Performance_Debugging_Plan.md)를 따른다.
 
+`PerformanceRuns.md`는 프로그램이 자동 출력하는 원본 산출물이 아니라, 실행 후 `Saved/ScenarioA/Runs/<RunId>/`에 남는 `run.json`, `client_snapshots.csv`, `server_network_metrics.csv`를 사람이 같은 RunId 기준으로 대조해 정리하는 성능 비교 문서다. 자동 생성 대상은 RunId 폴더의 JSON/CSV이고, `PerformanceRuns.md`는 그 결과를 포트폴리오 설명용 표와 해석으로 옮기는 문서로 다룬다.
+
 - Server Frame Time
 - NetBroadcastTickTime
 - Outgoing Bandwidth
@@ -319,7 +321,7 @@ IrisDemo는 `DefaultEngine.ini`와 로컬 실행 배치 기준으로 Iris를 기
 ## 9. 다음 단계
 
 1. Scenario A에서 actor count 외의 outgoing bandwidth 또는 replicated object count 중 최소 1개를 RunId 폴더에 기록
-2. Unreal Insights / CSV Profiling / NetTrace 수집 경로를 정리하고 `PerformanceRuns.md`에 결과 기록
+2. Unreal Insights / CSV Profiling / NetTrace 수집 경로를 정리하고, RunId 폴더의 JSON/CSV 산출물을 확인한 뒤 `PerformanceRuns.md`에 비교 결과와 해석을 수동 기록
 3. `DebuggingNotes.md`에 설정/실행 모드 차이와 실패 로그 분석을 기록
 4. Scenario A의 A7 마무리 문서화 완료
 5. Scenario C의 UObject loadout/cargo를 최소 기능으로 연결

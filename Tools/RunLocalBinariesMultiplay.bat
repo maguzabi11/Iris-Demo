@@ -26,9 +26,11 @@ set "REPLICATION_MODE_OPTION=--iris"
 set "PORT=7777"
 set "DRY_RUN=0"
 set "SERVER_STARTUP_WAIT=5"
-set "SCENARIO_ARGS=-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioAAutoSnapshotDelay=30"
+set "SCENARIO_ARGS="
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "SCENARIO_RUN_ID=ScenarioA_%%I"
 set "EXTRA_ARGS="
+set "ROLE_FILTERING_ARG="
+set "ROLE_FILTERING_EXPLICIT=0"
 
 :: Command line argument parsing
 :loop
@@ -73,6 +75,9 @@ if /i "!CURRENT_ARG!"=="--no-iris" (
     set "SCENARIO_RUN_ID=%~2"
     shift
 ) else (
+    if /i "!CURRENT_ARG:~0,29!"=="-ScenarioAEnableRoleFiltering" (
+        set "ROLE_FILTERING_EXPLICIT=1"
+    )
     if not "!CURRENT_ARG!"=="" if "!CURRENT_ARG:~0,1!"=="-" if not "!NEXT_ARG!"=="" if not "!NEXT_ARG:~0,1!"=="-" (
         set "EXTRA_ARGS=!EXTRA_ARGS! !CURRENT_ARG!=!NEXT_ARG!"
         shift
@@ -84,9 +89,17 @@ shift
 goto loop
 :end_loop
 
+if "%ROLE_FILTERING_EXPLICIT%"=="0" (
+    if "%USE_IRIS%"=="0" (
+        set "ROLE_FILTERING_ARG=-ScenarioAEnableRoleFiltering=0"
+    ) else (
+        set "ROLE_FILTERING_ARG=-ScenarioAEnableRoleFiltering=1"
+    )
+)
+
 set "IRIS_ARG=-UseIrisReplication=%USE_IRIS% -net.Iris.UseIrisReplication=%USE_IRIS%"
 set "RUN_ARG=-ScenarioARunId=%SCENARIO_RUN_ID%"
-set "ALL_ARGS=%IRIS_ARG% %RUN_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
+set "ALL_ARGS=%IRIS_ARG% %RUN_ARG% %ROLE_FILTERING_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
 
 echo ===================================================
 echo [IrisDemo] Local Binaries Multiplay Test Session
@@ -100,6 +113,7 @@ echo Port:         %PORT%
 echo Run Id:       %SCENARIO_RUN_ID%
 echo Dry Run:      %DRY_RUN%
 echo Server Wait:  %SERVER_STARTUP_WAIT%s
+echo Role Filter:  %ROLE_FILTERING_ARG%
 echo Base Args:    %SCENARIO_ARGS%
 echo Extra Args:   %EXTRA_ARGS%
 echo ===================================================

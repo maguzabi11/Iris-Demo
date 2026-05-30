@@ -299,27 +299,29 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 
 - 서버 형태: 먼저 listen server + 2 clients PIE로 확인하고, 이후 dedicated server + 2 clients로 반복한다.
 - 기본 인원: 2 clients에서는 Commander/FieldAgent만 기록하고, Spectator 비교는 3 clients에서 기록한다.
-- 기본 actor count: sensor 6, drone 3, supply crate 3, detail actor total 12.
-- 기본 seed/duration: `ScenarioASeed=1001`, `ScenarioARunDuration=30`, `ScenarioAUpdateInterval=2`.
-- A4 이전 기대값: Commander/FieldAgent/Spectator 모두 `DetailActorTotal=12`가 기준이다. 역할별 차이가 이미 난다면 filtering 결과가 아니라 baseline 복제 조건 문제로 본다.
+- 기본 actor count: sensor 60, drone 30, supply crate 30, detail actor total 120.
+- 기본 seed/duration: `ScenarioASeed=1001`, `ScenarioARunDuration=95`, `ScenarioAUpdateInterval=2`.
+- 기본 bandwidth 측정 window: `ScenarioANetworkMetricsStartDelay=35`, `ScenarioANetworkMetricsDuration=60`, `ScenarioANetworkMetricsInterval=1`.
+- A4 이전 기대값: Commander/FieldAgent/Spectator 모두 `DetailActorTotal=120`이 기준이다. 역할별 차이가 이미 난다면 filtering 결과가 아니라 baseline 복제 조건 문제로 본다.
 
 실행 인자:
 
 - Generic replication: `--no-iris` 또는 `-UseIrisReplication=0`
 - Iris replication: 기본값 또는 `-UseIrisReplication=1`
-- 공통 조건: `-ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30 -ScenarioAEnableRoleFiltering=0`
-- PIE URL option으로 넘길 때는 같은 이름을 `?ScenarioASeed=1001?ScenarioASensorCount=6?...` 형식으로 붙인다.
+- 공통 조건은 코드 기본값을 사용한다. 로컬 실행 배치는 `--no-iris`일 때 `-ScenarioAEnableRoleFiltering=0`, `--iris`일 때 `-ScenarioAEnableRoleFiltering=1`을 자동 전달한다.
+- PIE URL option으로 넘길 때는 같은 이름을 `?ScenarioASeed=1001?ScenarioASensorCount=60?...` 형식으로 붙인다.
 
 기록할 로그:
 
 - 서버 시작 기준: `Scenario A baseline config`
 - 서버 측정 구간 종료: `Scenario A baseline server window complete`
-- 각 local client 수신 기준: 기본 배치에서는 `-ScenarioAAutoSnapshotDelay=30`으로 자동 기록하고, 필요할 때 console에서 `IrisRelayLogBaselineSnapshot`을 실행해 수동 기록
+- 서버 bandwidth 측정 window 시작/종료: `Scenario A network metrics window started`, `Scenario A network metrics window stopped`
+- 각 local client 수신 기준: 기본값은 95초 뒤 자동 기록이고, 필요할 때 console에서 `IrisRelayLogBaselineSnapshot`을 실행해 수동 기록
 
 자동 파일 기록:
 
 - 서버 `GameMode`는 BeginPlay 이후 `Saved/ScenarioA/Runs/<RunId>/run.json`을 저장한다.
-- 서버 `GameMode`는 `ScenarioANetworkMetricsInterval`이 0보다 크면 같은 RunId의 `server_network_metrics.csv`에 NetDriver 전체 및 connection별 outgoing bandwidth row를 주기적으로 append한다.
+- 서버 `GameMode`는 `ScenarioANetworkMetricsInterval`이 0보다 크면 같은 RunId의 `server_network_metrics.csv`에 NetDriver 전체 및 connection별 outgoing bandwidth row를 주기적으로 append한다. `ScenarioANetworkMetricsStartDelay`가 0보다 크면 지정된 지연 후 측정을 시작하고, `ScenarioANetworkMetricsDuration`이 0보다 크면 해당 길이만큼만 기록한다.
 - 각 local client는 `-ScenarioAAutoSnapshotDelay=<seconds>`가 0보다 크면 같은 RunId의 `client_snapshots.csv`에 `Source=Auto` row를 한 번 append한다. `IrisRelayLogBaselineSnapshot`을 수동 실행하면 같은 파일에 `Source=Console` row를 추가 append한다.
 - `RunId`는 `-ScenarioARunId=<id>`로 넘기며, `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 기본적으로 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 모든 client에 공통 전달한다.
 - 수동으로 고정하려면 배치 실행 시 `--run-id ScenarioA_manual_001`처럼 넘긴다.
@@ -329,14 +331,14 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - `runId`, `timestamp`, `map`, `serverType`, `mode`
 - `irisCommandLineOverride`, `roleFiltering`, `roleFilteringSource`, `runIdSource`
 - `seed`, `sensorCount`, `droneCount`, `supplyCrateCount`, `summaryCount`, `detailActorTotal`
-- `updateInterval`, `runDuration`, `networkMetricsInterval`, `commandLine`
+- `updateInterval`, `runDuration`, `networkMetricsInterval`, `networkMetricsStartDelay`, `networkMetricsDuration`, `commandLine`
 
 `server_network_metrics.csv` 컬럼:
 
 ```csv
 Timestamp,RunId,Mode,NetMode,Scope,ConnectionId,Controller,Role,Zone,
 OutBytesPerSecond,OutTotalBytes,OutPacketsPerSecond,OutTotalPackets,
-OutBunches,OutTotalBunches,ConnectionCount
+OutBunches,OutTotalBunches,ConnectionCount,WorldTimeSeconds,MetricsWindowElapsedSeconds
 ```
 
 - `Scope=NetDriver` row는 서버 NetDriver 전체 outgoing bytes/sec와 누적 송신량을 기록한다.
@@ -403,7 +405,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 
 실행 인자:
 
-- A4 Iris filtering: `-UseIrisReplication=1 -ScenarioAEnableRoleFiltering=1 -ScenarioASeed=1001 -ScenarioASensorCount=6 -ScenarioADroneCount=3 -ScenarioASupplyCrateCount=3 -ScenarioAUpdateInterval=2 -ScenarioARunDuration=30`
+- A4 Iris filtering: 로컬 배치 기준 `Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_IrisHeavy_001`
 - Generic mode 또는 `ScenarioAEnableRoleFiltering=0`에서는 role filtering을 적용하지 않는다.
 - Generic mode는 IrisDemo의 기본 실행 경로가 아니라 비교용 control run이다. 로컬 배치에서는 `--no-iris`를 사용하고, 직접 실행할 때는 `-UseIrisReplication=0`을 명시한다.
 - PIE URL option이 `AIrisDemoGameMode::InitGame`의 `Options`로 전달되지 않는 경우, `Config/DefaultGame.ini`에서 `bScenarioAEnableRoleFiltering=True`로 켠 뒤 에디터를 다시 실행한다.
