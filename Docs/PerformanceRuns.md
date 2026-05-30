@@ -12,6 +12,7 @@
 
 - Iris filtering run: client snapshot CSV와 server bandwidth CSV 확보됨
 - Generic baseline run: client snapshot CSV와 server bandwidth CSV 확보됨
+- `ScenarioA_GenericHeavy_001` / `ScenarioA_IrisHeavy_001`: 실행은 완료됐지만 오래된 Server/Client 바이너리로 실행되어 heavy 측정으로는 무효
 - 결론: role-based filtering에 따른 actor count 감소는 확인했다. 단, 이번 run의 connection별 outgoing bandwidth 평균은 FieldAgent/Spectator에서도 Generic baseline보다 낮지 않았으므로 bandwidth 개선 결론은 내리지 않는다.
 
 필수 비교 run:
@@ -20,6 +21,8 @@
 |----------|-----------|-----------|------|
 | Generic baseline | 필요 | 확보 | `-UseIrisReplication=0`, `ScenarioAEnableRoleFiltering=0`, RunId `ScenarioA_GenericBaseline_001` |
 | Iris filtering on | 필요 | 확보 | `-UseIrisReplication=1`, `ScenarioAEnableRoleFiltering=1`, RunId `ScenarioA_IrisFiltering_001` |
+| Generic heavy | 필요 | 무효 | RunId `ScenarioA_GenericHeavy_001`, stale binary로 detail actor 12개 조건 실행 |
+| Iris heavy | 필요 | 무효 | RunId `ScenarioA_IrisHeavy_001`, stale binary로 detail actor 12개 조건 실행 |
 
 ## 2. 유효한 run 판정 기준
 
@@ -45,6 +48,15 @@ Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_GenericBaseli
 Saved/Cooked/WindowsClient/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_IrisFiltering_001/client_snapshots.csv
 Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_IrisFiltering_001/run.json
 Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_IrisFiltering_001/server_network_metrics.csv
+```
+
+`ScenarioA_GenericHeavy_001`과 `ScenarioA_IrisHeavy_001`은 server 산출물만 확인했다. client snapshot CSV는 발견되지 않았다.
+
+```text
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_GenericHeavy_001/run.json
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_GenericHeavy_001/server_network_metrics.csv
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_IrisHeavy_001/run.json
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_IrisHeavy_001/server_network_metrics.csv
 ```
 
 `run.json`에서 확인할 것:
@@ -183,18 +195,58 @@ Role != Unassigned
 
 NetDriver 전체 row는 `OutBytesPerSecond`가 0으로 기록되므로 현재 해석에는 connection별 값을 우선 사용한다. 두 run의 안정 구간 길이가 다르므로 `DeltaOutTotalBytes`끼리는 직접 비교하지 않고, role별 `AvgOutBytesPerSecond`를 우선 비교한다.
 
-## 6. 재측정 명령
+## 6. Heavy 측정 시도 판정
 
-Generic baseline은 확보했으므로 재측정은 필수는 아니다. 다시 측정할 때는 아래 조건을 사용한다.
+2026-05-30에 아래 명령을 실행했다.
 
 ```bat
 Tools\RunLocalBinariesMultiplay.bat --no-iris --run-id ScenarioA_GenericHeavy_001
+Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_IrisHeavy_001
+```
+
+그러나 `run.json` 기준으로 두 run 모두 heavy 조건이 아니었다.
+
+| RunId | Mode | RoleFiltering | DetailActorTotal | RunDuration | CSV schema | Client snapshot | 판정 |
+|-------|------|---------------|------------------|-------------|------------|-----------------|------|
+| ScenarioA_GenericHeavy_001 | Generic | false | 12 | 30.000 | old, no `MetricsWindowElapsedSeconds` | 없음 | 무효 |
+| ScenarioA_IrisHeavy_001 | Iris | true | 12 | 30.000 | old, no `MetricsWindowElapsedSeconds` | 없음 | 무효 |
+
+원인은 `Tools\RunLocalBinariesMultiplay.bat`가 `Binaries\Win64\IrisDemoServer.exe`와 `IrisDemoClient.exe`를 실행하는데, 해당 바이너리가 새 측정 기본값 커밋 전 빌드였기 때문이다.
+
+확인 당시 바이너리 timestamp:
+
+| Binary | LastWriteTime |
+|--------|---------------|
+| `Binaries\Win64\IrisDemoServer.exe` | 2026-05-28 21:01:26 |
+| `Binaries\Win64\IrisDemoClient.exe` | 2026-05-28 21:00:44 |
+
+무효 run의 server metrics 참고값:
+
+| RunId | Mode | Role | AvgOutBytesPerSecond | DeltaOutTotalBytes | Samples | Status |
+|-------|------|------|----------------------|--------------------|---------|--------|
+| ScenarioA_GenericHeavy_001 | Generic | Commander | 1482.05 | 432150 | 296 | Invalid stale-binary run |
+| ScenarioA_GenericHeavy_001 | Generic | FieldAgent | 1475.36 | 431612 | 296 | Invalid stale-binary run |
+| ScenarioA_GenericHeavy_001 | Generic | Spectator | 1475.61 | 435273 | 296 | Invalid stale-binary run |
+| ScenarioA_IrisHeavy_001 | Iris | Commander | 1642.88 | 221946 | 136 | Invalid stale-binary run |
+| ScenarioA_IrisHeavy_001 | Iris | FieldAgent | 1582.60 | 213945 | 136 | Invalid stale-binary run |
+| ScenarioA_IrisHeavy_001 | Iris | Spectator | 1566.49 | 212164 | 136 | Invalid stale-binary run |
+
+위 값은 기존 12 actor 조건에서 나온 참고값일 뿐, 120 actor 동일 window 비교에는 사용하지 않는다.
+
+무효 판정 후 `Tools\BuildServer.bat`와 `Tools\BuildClient.bat`를 실행해 새 Server/Client 바이너리 빌드는 성공했다. 다음 측정은 같은 RunId를 재사용하지 말고 새 RunId로 다시 실행한다.
+
+## 7. 재측정 명령
+
+120 actor 동일 window 측정은 새로 빌드된 바이너리로 다시 실행해야 한다.
+
+```bat
+Tools\RunLocalBinariesMultiplay.bat --no-iris --run-id ScenarioA_GenericHeavy_002
 ```
 
 Iris filtering:
 
 ```bat
-Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_IrisHeavy_001
+Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_IrisHeavy_002
 ```
 
 두 run 모두 완료 후 확인할 것:
@@ -202,13 +254,13 @@ Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_IrisHeavy_001
 ```text
 Saved/ScenarioA/Runs/ScenarioA_GenericBaseline_001/
 Saved/ScenarioA/Runs/ScenarioA_IrisFiltering_001/
-Saved/ScenarioA/Runs/ScenarioA_GenericHeavy_001/
-Saved/ScenarioA/Runs/ScenarioA_IrisHeavy_001/
+Saved/ScenarioA/Runs/ScenarioA_GenericHeavy_002/
+Saved/ScenarioA/Runs/ScenarioA_IrisHeavy_002/
 ```
 
 각 폴더에 `run.json`, `client_snapshots.csv`, `server_network_metrics.csv`가 모두 있어야 한다.
 
-## 7. 결과 표
+## 8. 결과 표
 
 Generic baseline은 control run으로 기록한다. Iris filtering actor count는 기대대로 줄었지만, 이번 run의 connection별 bandwidth 평균은 감소하지 않았다.
 
@@ -229,7 +281,7 @@ Avg bandwidth comparison:
 | FieldAgent | 1501.20 | 1593.84 | +92.64 | +6.2% |
 | Spectator | 1500.38 | 1577.47 | +77.09 | +5.1% |
 
-## 8. 현재 해석
+## 9. 현재 해석
 
 Generic baseline 기대값:
 
@@ -265,10 +317,11 @@ Iris filtering 관찰값:
 - 접속 직후 초기 replication 구간은 handshake와 initial spawn 비용이 섞인다.
 - 비교할 때는 같은 duration의 안정 구간 평균 또는 같은 run window의 `OutTotalBytes` 증가량을 우선 사용한다.
 
-## 9. 다음 작업
+## 10. 다음 작업
 
-1. 새 측정 옵션으로 Generic/Iris heavy run을 실행한다.
-2. 별도 actor count/window 옵션은 붙이지 않는다. 현재 코드 기본값이 detail actor 120개, `ScenarioANetworkMetricsStartDelay=35`, `ScenarioANetworkMetricsDuration=60`, `ScenarioANetworkMetricsInterval=1`이다.
-3. 실행 명령은 `Tools\RunLocalBinariesMultiplay.bat --no-iris --run-id ScenarioA_GenericHeavy_001`, `Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_IrisHeavy_001`로 둔다.
-4. `server_network_metrics.csv`의 `MetricsWindowElapsedSeconds` 기준으로 두 run의 같은 길이 window를 비교한다.
-5. 결과가 기대와 다르면 `DebuggingNotes.md`에 원인 분석을 남긴다.
+1. 새로 빌드된 Server/Client 바이너리로 `ScenarioA_GenericHeavy_002`, `ScenarioA_IrisHeavy_002`를 실행한다.
+2. `run.json`에서 `detailActorTotal=120`, `runDuration=95.000`, `networkMetricsStartDelay=35.000`, `networkMetricsDuration=60.000`을 먼저 확인한다.
+3. `server_network_metrics.csv`에 `MetricsWindowElapsedSeconds` 컬럼이 있는지 확인한다.
+4. `client_snapshots.csv`가 client 쪽 run 폴더에 생성됐는지 확인한다.
+5. 유효하면 `MetricsWindowElapsedSeconds` 기준으로 두 run의 같은 길이 window를 비교한다.
+6. 결과가 기대와 다르면 `DebuggingNotes.md`에 원인 분석을 남긴다.
