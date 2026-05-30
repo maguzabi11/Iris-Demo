@@ -136,6 +136,8 @@
 - `Iris기본지식.md`: UE 5.7.1 기준 학습/검증 사실
 - 짧은 README: 문제 정의, 재현법, Generic/Iris 결과 차이, 성능 측정 방법
 
+2026-05-30 기준 `PerformanceRuns.md`는 생성했지만, Generic baseline bandwidth run이 없어 결과 표는 보류 상태다. 다음 측정은 `--no-iris`, `ScenarioAEnableRoleFiltering=0` 조건의 Generic baseline run을 먼저 확보한다.
+
 ## 6. 면접에서 강조할 이야기
 
 - Iris가 빠르다고 가정하지 않고 Generic과 같은 조건으로 비교했다.

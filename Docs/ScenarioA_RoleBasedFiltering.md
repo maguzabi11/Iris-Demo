@@ -496,7 +496,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 
 가장 작은 다음 커밋 후보:
 
-1. actor count 외에 outgoing bandwidth, replicated object count, NetTrace/CSV 중 최소 1개 수집 경로 작성
+1. Generic baseline bandwidth run을 확보하고 `PerformanceRuns.md`의 Missing 상태를 해소
 2. `PerformanceRuns.md`에 같은 RunId 기준 Generic/Iris 비교 표를 추가
 3. `DebuggingNotes.md`에 설정/실행 모드 차이와 실패 로그 분석을 기록
 4. 역할 변경 console command와 filter membership 갱신 검증 추가
