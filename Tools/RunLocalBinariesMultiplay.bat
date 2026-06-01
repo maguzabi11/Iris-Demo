@@ -31,6 +31,10 @@ for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss
 set "EXTRA_ARGS="
 set "ROLE_FILTERING_ARG="
 set "ROLE_FILTERING_EXPLICIT=0"
+set "TRACE_SERVER=0"
+set "SERVER_TRACE_ARGS="
+set "SERVER_TRACE_DIR="
+set "SERVER_TRACE_FILE="
 
 :: Command line argument parsing
 :loop
@@ -61,6 +65,8 @@ if /i "!CURRENT_ARG!"=="--no-iris" (
     set "REPLICATION_MODE_OPTION=--iris"
 ) else if /i "!CURRENT_ARG!"=="--dry-run" (
     set "DRY_RUN=1"
+) else if /i "!CURRENT_ARG!"=="--trace-server" (
+    set "TRACE_SERVER=1"
 ) else if /i "!CURRENT_ARG!"=="--server-wait-timeout" (
     set "SERVER_STARTUP_WAIT=%~2"
     shift
@@ -101,6 +107,12 @@ set "IRIS_ARG=-UseIrisReplication=%USE_IRIS% -net.Iris.UseIrisReplication=%USE_I
 set "RUN_ARG=-ScenarioARunId=%SCENARIO_RUN_ID%"
 set "ALL_ARGS=%IRIS_ARG% %RUN_ARG% %ROLE_FILTERING_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
 
+if "%TRACE_SERVER%"=="1" (
+    set "SERVER_TRACE_DIR=%PROJECT_ROOT%\Saved\ScenarioA\Runs\%SCENARIO_RUN_ID%"
+    set "SERVER_TRACE_FILE=!SERVER_TRACE_DIR!\server_trace.utrace"
+    set "SERVER_TRACE_ARGS=-trace=cpu,frame,bookmark,log,net -tracefile=!SERVER_TRACE_FILE! -tracefiletrunc -NetTrace=1"
+)
+
 echo ===================================================
 echo [IrisDemo] Local Binaries Multiplay Test Session
 echo ===================================================
@@ -114,19 +126,23 @@ echo Run Id:       %SCENARIO_RUN_ID%
 echo Dry Run:      %DRY_RUN%
 echo Server Wait:  %SERVER_STARTUP_WAIT%s
 echo Role Filter:  %ROLE_FILTERING_ARG%
+echo Trace Server: %TRACE_SERVER%
+if "%TRACE_SERVER%"=="1" echo Trace File:   %SERVER_TRACE_FILE%
 echo Base Args:    %SCENARIO_ARGS%
 echo Extra Args:   %EXTRA_ARGS%
 echo ===================================================
 
 if "%DRY_RUN%"=="1" (
-    echo Server Command: start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS%
+    echo Server Command: start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS% %SERVER_TRACE_ARGS%
     echo Client Command: "%CLIENT_EXE%" 127.0.0.1:%PORT% -log -windowed -resx=960 -resy=540 [window position] %ALL_ARGS%
     echo Dry run complete. No sessions launched.
     exit /b 0
 )
 
+if "%TRACE_SERVER%"=="1" if not exist "%SERVER_TRACE_DIR%" mkdir "%SERVER_TRACE_DIR%"
+
 echo Starting Dedicated Server...
-start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" Lvl_ThirdPerson -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS%
+start "IrisDemo Binary Dedicated Server" "%SERVER_EXE%" Lvl_ThirdPerson -log -stdout -FullStdOutLogOutput -port=%PORT% %ALL_ARGS% %SERVER_TRACE_ARGS%
 
 if "%SERVER_STARTUP_WAIT%"=="0" (
     echo Server wait disabled. Starting clients immediately.

@@ -218,9 +218,11 @@ Scenario A를 기능 데모가 아니라 포트폴리오용 재현 가능한 샘
    - FieldAgent/Spectator bandwidth 감소 방향이 3회 모두 유지됨을 확인했다.
    - 평균과 편차는 `PerformanceRuns.md`에 기록했다.
 
-3. Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
-   - 지금은 자체 CSV인 `server_network_metrics.csv`가 있다.
-   - 포트폴리오 설득력을 위해 UE 도구 기반 산출물 수집 절차도 하나는 남겨야 한다.
+3. Unreal Insights trace run 실행
+   - `Docs/ProfilingCapturePath.md`에 1차 수집 경로를 작성했다.
+   - 선택한 방식은 Unreal Insights trace file에 `cpu,frame,bookmark,log,net` channel과 `-NetTrace=1`을 함께 켜는 것이다.
+   - `Tools\RunLocalBinariesMultiplay.bat --trace-server`는 dedicated server에만 `server_trace.utrace`를 남긴다.
+   - 아직 Generic/Iris trace run 1쌍 실행과 Unreal Insights 확인은 남아 있다.
 
 4. Scenario A 실행법 정리
    - build, server/client 실행, Generic/Iris 비교 명령, 산출물 위치를 한 섹션으로 정리한다.

@@ -138,6 +138,8 @@
 
 2026-06-01 기준 `PerformanceRuns.md`는 12 actor baseline과 120 actor heavy 비교 결과를 모두 기록했다. `ScenarioA_GenericHeavy_002`/`ScenarioA_IrisHeavy_002`, `ScenarioA_20260601_201201`/`ScenarioA_20260601_201615`, `ScenarioA_20260601_203950`/`ScenarioA_20260601_204211` 기준으로 FieldAgent/Spectator의 actor count와 outgoing bandwidth 감소가 3회 같은 방향으로 재현됐으며, 무효 run 판정과 남은 디버깅 항목은 `DebuggingNotes.md`에 분리했다.
 
+2026-06-01 기준 1차 profiling 수집 경로는 `Docs/ProfilingCapturePath.md`에 고정했다. Unreal Insights trace file에 `cpu,frame,bookmark,log,net` channel과 `-NetTrace=1`을 함께 켜는 방식을 선택했고, `Tools\RunLocalBinariesMultiplay.bat --trace-server`가 dedicated server에만 `server_trace.utrace`를 남긴다.
+
 ## 6. 면접에서 강조할 이야기
 
 - Iris가 빠르다고 가정하지 않고 Generic과 같은 조건으로 비교했다.
@@ -149,7 +151,7 @@
 
 ## 7. 다음 우선순위
 
-1. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
+1. Unreal Insights trace run을 Generic/Iris 1쌍으로 실행하고 `server_trace.utrace`를 확인
 2. replicated object count 또는 relevant object count 기록 경로 확인
 3. Scenario A 마무리 문서화: 실행법, 구현 class 목록, UE 5.7.1 제약, 다음 시나리오 TODO 정리
 4. Scenario C UObject/subobject replication 최소 구현 착수
