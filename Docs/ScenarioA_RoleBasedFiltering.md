@@ -4,11 +4,11 @@
 
 ## 1. 현재 상태
 
-- 기준일: 2026-05-15
+- 기준일: 2026-06-01
 - 엔진 기준: UE 5.7.1
 - 목표 시나리오: 역할별 관심 정보 차등 복제
-- 현재 단계: A3 Generic baseline과 A4 Iris role-based filtering의 role별 client snapshot을 listen server와 dedicated server 양쪽에서 기록한 상태
-- 포트폴리오 관점: 기능 데모 기준으로는 약 80% 완료, 성능 측정/디버깅 중심 포트폴리오 기준으로는 약 50~55% 완료
+- 현재 단계: A3/A4 role별 client snapshot과 120 actor heavy bandwidth 반복 측정을 기록한 상태
+- 포트폴리오 관점: 기능 데모 기준으로는 약 85~90% 완료, 성능 측정/디버깅 중심 포트폴리오 기준으로는 약 65~70% 완료
 
 이미 확인한 기반 상태:
 
@@ -23,8 +23,12 @@
 - [x] Generic/Iris 비교 실행 절차 작성
 - [x] 측정 UI 또는 로그 요약 구현
 - [x] UE 5.7.1 `IrisDemoEditor Win64 Development` 빌드 확인
+- [x] 120 actor heavy 조건에서 Generic/Iris outgoing bandwidth 반복 측정 기록
+- [x] 무효 run과 유효 run의 판정 기준을 `PerformanceRuns.md`, `DebuggingNotes.md`, `실험기본기.md`에 문서화
 
 상위 포트폴리오 보강 방향은 [Portfolio_Performance_Debugging_Plan.md](./Portfolio_Performance_Debugging_Plan.md)를 따른다. Scenario A는 이 계획의 첫 검증 단위이며, 단순히 actor 수가 다르게 보이는 것보다 “같은 조건의 Generic/Iris 실행을 구성하고 role별 false positive 복제 여부를 설명할 수 있는가”를 중점으로 마감한다.
+
+측정 결과는 [PerformanceRuns.md](./PerformanceRuns.md), 비교 실험 기본기는 [실험기본기.md](./실험기본기.md), 문제/무효 run/남은 디버깅 항목은 [DebuggingNotes.md](./DebuggingNotes.md)에 분리해 기록한다.
 
 ## 2. 시나리오 목표
 
@@ -450,8 +454,10 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 - [x] PIE URL option, command line option, `DefaultGame.ini` override 적용 차이 기록
 - [x] run id, seed, mode, role filtering, actor count, duration을 파일로 저장
 - [x] actor count 외에 outgoing bandwidth 또는 replicated object count 중 최소 1개 수집
+- [x] 120 actor heavy 조건에서 Generic/Iris bandwidth 비교 표 작성
+- [x] 무효 run 원인 분석과 유효 run 판정 기준을 `DebuggingNotes.md`에 기록
 - [ ] Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
-- [ ] 실패 또는 불일치 사례가 생기면 원인 분석 로그를 `DebuggingNotes.md`에 기록
+- [ ] Commander bandwidth 감소 원인을 반복 run 또는 NetTrace/CSV profiling으로 추가 확인
 
 완료 기준:
 
@@ -462,6 +468,8 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 - [ ] 구현 class 목록 추가
 - [ ] 실행 방법 추가
 - [x] 측정 결과 표 추가
+- [x] 디버깅 노트 추가
+- [x] 비교 실험 기본기 문서 추가
 - [ ] UE 5.7.1 Iris filtering 제약/주의점 추가
 - [ ] 다음 시나리오로 넘길 TODO 분리
 - [ ] `Docs/Iris기본지식.md`에 새로 확인한 Iris 사실 반영
@@ -480,6 +488,10 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 | 2026-05-22 | Iris | Dedicated server, local binary | 3 role snapshot | 1001 | Detail=12, Summary=1, DetailMax=11 | Detail=4, Summary=0, DetailMax=18 | Detail=0, Summary=1, DetailMax=0 | A4 filtering 재현. FieldAgent는 Zone 0 detail만, Spectator는 summary만 수신 |
 | 2026-05-22 | Generic | Listen server, local binary | 3 role snapshot | 1001 | Detail=12, Summary=1, DetailMax=18 | Detail=12, Summary=1, DetailMax=13 | Detail=12, Summary=1, DetailMax=15 | A3 baseline 재현. 서버 형태가 바뀌어도 role별 차이 없음 |
 | 2026-05-22 | Iris | Listen server, local binary | 3 role snapshot | 1001 | Detail=12, Summary=1, DetailMax=9 | Detail=4, Summary=0, DetailMax=7 | Detail=0, Summary=1, DetailMax=0 | A4 filtering 재현. Dedicated server 결과와 같은 actor count 패턴 |
+| 2026-05-30 | Generic heavy | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2280.28 | Detail=120, Summary=1, AvgOut=2307.00 | Detail=120, Summary=1, AvgOut=2263.84 | `ScenarioA_GenericHeavy_002`. 60초 metrics window, NetDriver DeltaOutTotalBytes=411758 |
+| 2026-05-30 | Iris heavy | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2093.87 | Detail=40, Summary=0, AvgOut=1740.18 | Detail=0, Summary=1, AvgOut=1571.51 | `ScenarioA_IrisHeavy_002`. FieldAgent -24.6%, Spectator -30.6%, NetDriver DeltaOutTotalBytes=325034 |
+| 2026-06-01 | Generic heavy repeat | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2338.31 | Detail=120, Summary=1, AvgOut=2338.30 | Detail=120, Summary=1, AvgOut=2337.30 | `ScenarioA_20260601_201201`. 60초 metrics window, NetDriver DeltaOutTotalBytes=419329 |
+| 2026-06-01 | Iris heavy repeat | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2109.62 | Detail=40, Summary=0, AvgOut=1755.75 | Detail=0, Summary=1, AvgOut=1579.67 | `ScenarioA_20260601_201615`. FieldAgent -24.9%, Spectator -32.4%, NetDriver DeltaOutTotalBytes=327108 |
 
 ## 7. 결정 로그
 
@@ -498,10 +510,11 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 
 가장 작은 다음 커밋 후보:
 
-1. Generic baseline bandwidth run을 확보하고 `PerformanceRuns.md`의 Missing 상태를 해소
-2. `PerformanceRuns.md`에 같은 RunId 기준 Generic/Iris 비교 표를 추가
-3. `DebuggingNotes.md`에 설정/실행 모드 차이와 실패 로그 분석을 기록
+1. A7 마무리 문서화: 구현 class 목록, 실행 방법, UE 5.7.1 Iris 제약/주의점, 다음 시나리오 TODO를 정리
+2. 같은 heavy 조건을 1회 더 반복 측정해 최소 3쌍 평균과 편차를 `PerformanceRuns.md`에 추가
+3. Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로를 작성
 4. 역할 변경 console command와 filter membership 갱신 검증 추가
 5. actor despawn 시 filter membership 정리와 Spectator summary update cadence 지연 처리
+6. `Docs/Iris기본지식.md`에 Scenario A에서 새로 확인한 실행/측정 제약 반영
 
-detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 listen server/dedicated server 양쪽 role별 snapshot으로 확인했다. 다음부터는 “실행 조건과 측정 결과를 파일로 남기는 재현성”과 “actor count 밖의 네트워크 측정값”을 확보하는 것이 가장 작고 확인 가능한 단위다.
+detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 listen server/dedicated server 양쪽 role별 snapshot으로 확인했다. 2026-06-01 기준으로 120 actor heavy 조건의 outgoing bandwidth 감소가 2회 측정에서 같은 방향으로 재현됐으므로, 다음부터는 최소 3쌍까지 반복 측정을 늘리고 UE profiling 산출물 수집 경로를 붙여 Scenario A를 제출 가능한 단위로 마감한다.

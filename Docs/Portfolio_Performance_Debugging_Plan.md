@@ -32,7 +32,7 @@
 현재 부족한 부분은 기능보다 측정 체계다.
 
 - actor count는 있지만 bandwidth, replicated object count, relevant object count가 아직 없다.
-- dedicated server + 3 clients의 Generic/Iris actor count 검증은 1차로 끝났지만, 성능 수치까지 포함한 반복 run은 아직 부족하다.
+- dedicated server + 3 clients의 Generic/Iris actor count와 120 actor bandwidth 비교는 2회까지 반복됐지만, 편차를 말하려면 최소 1회 이상 추가 반복이 필요하다.
 - 실행 환경은 RunId와 기본 옵션을 저장하기 시작했지만, 프로파일링 산출물까지 완전히 묶인 형태는 아직 아니다.
 - Unreal Insights / NetTrace / CSV Profiling 결과가 아직 산출물로 남지 않았다.
 - 문제가 생겼을 때 어떻게 추적했는지를 보여주는 디버깅 사례가 부족하다.
@@ -136,7 +136,7 @@
 - `Iris기본지식.md`: UE 5.7.1 기준 학습/검증 사실
 - 짧은 README: 문제 정의, 재현법, Generic/Iris 결과 차이, 성능 측정 방법
 
-2026-05-30 기준 `PerformanceRuns.md`는 생성했지만, Generic baseline bandwidth run이 없어 결과 표는 보류 상태다. 다음 측정은 `--no-iris`, `ScenarioAEnableRoleFiltering=0` 조건의 Generic baseline run을 먼저 확보한다.
+2026-06-01 기준 `PerformanceRuns.md`는 12 actor baseline과 120 actor heavy 비교 결과를 모두 기록했다. `ScenarioA_GenericHeavy_002`/`ScenarioA_IrisHeavy_002`와 `ScenarioA_20260601_201201`/`ScenarioA_20260601_201615` 기준으로 FieldAgent/Spectator의 actor count와 outgoing bandwidth 감소가 2회 같은 방향으로 재현됐으며, 무효 run 판정과 남은 디버깅 항목은 `DebuggingNotes.md`에 분리했다.
 
 ## 6. 면접에서 강조할 이야기
 
@@ -149,7 +149,8 @@
 
 ## 7. 다음 우선순위
 
-1. `PerformanceRuns.md`와 `DebuggingNotes.md` 생성
+1. Scenario A heavy 조건을 1회 더 반복해 최소 3쌍 평균/편차 기록
 2. Unreal Insights / CSV / NetTrace 최소 수집 경로 정리
-3. replicated object count 기록 경로 확인
-4. Scenario C UObject/subobject replication 최소 구현 착수
+3. replicated object count 또는 relevant object count 기록 경로 확인
+4. Scenario A 마무리 문서화: 실행법, 구현 class 목록, UE 5.7.1 제약, 다음 시나리오 TODO 정리
+5. Scenario C UObject/subobject replication 최소 구현 착수
