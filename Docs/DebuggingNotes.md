@@ -15,17 +15,17 @@ Scenario A의 core 기능은 동작한다.
 - Generic baseline에서는 Commander, FieldAgent, Spectator가 모두 detail actor를 받는다.
 - Iris role filtering에서는 Commander는 전체 detail actor, FieldAgent는 자기 zone detail actor, Spectator는 summary actor만 받는다.
 - 12 actor run에서는 actor count 감소는 확인됐지만 bandwidth 감소는 확인되지 않았다.
-- 120 actor heavy run에서는 2회 측정 모두 actor count 감소와 outgoing bandwidth 감소가 함께 확인됐다.
+- 120 actor heavy run에서는 3회 측정 모두 actor count 감소와 outgoing bandwidth 감소가 함께 확인됐다.
 
 현재 가장 중요한 성능 결과는 다음이다.
 
 | 비교 | Generic | Iris | 차이 |
 |------|---------|------|------|
-| FieldAgent AvgOutBytesPerSecond | 2322.65 | 1747.97 | -24.7% |
-| Spectator AvgOutBytesPerSecond | 2300.57 | 1575.59 | -31.5% |
-| NetDriver DeltaOutTotalBytes | 415543.50 | 326071.00 | -21.5% |
+| FieldAgent AvgOutBytesPerSecond | 2326.39 | 1752.34 | -24.7% |
+| Spectator AvgOutBytesPerSecond | 2311.83 | 1576.34 | -31.8% |
+| NetDriver DeltaOutTotalBytes | 416845.00 | 326283.00 | -21.7% |
 
-이 결론은 `ScenarioA_GenericHeavy_002`/`ScenarioA_IrisHeavy_002`와 `ScenarioA_20260601_201201`/`ScenarioA_20260601_201615`의 60초 metrics window 2회 평균 기준이다.
+이 결론은 `ScenarioA_GenericHeavy_002`/`ScenarioA_IrisHeavy_002`, `ScenarioA_20260601_201201`/`ScenarioA_20260601_201615`, `ScenarioA_20260601_203950`/`ScenarioA_20260601_204211`의 60초 metrics window 3회 평균 기준이다.
 
 ## 2. 유효하지 않은 heavy run 판정
 
@@ -74,6 +74,8 @@ IrisDemo의 기본 replication mode는 Iris다. Generic은 기본값이 아니�
 - `ScenarioA_IrisHeavy_002`는 `mode=Iris`, `roleFiltering=true`로 유효하다.
 - `ScenarioA_20260601_201201`는 `mode=Generic`, `roleFiltering=false`로 유효하다.
 - `ScenarioA_20260601_201615`는 `mode=Iris`, `roleFiltering=true`로 유효하다.
+- `ScenarioA_20260601_203950`는 `mode=Generic`, `roleFiltering=false`로 유효하다.
+- `ScenarioA_20260601_204211`는 `mode=Iris`, `roleFiltering=true`로 유효하다.
 
 ## 4. 저장 위치 분리 이슈
 
@@ -125,7 +127,7 @@ Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/<RunId>/server_network_
 
 ## 6. 120 actor heavy run의 유효성
 
-`ScenarioA_GenericHeavy_002`/`ScenarioA_IrisHeavy_002`와 `ScenarioA_20260601_201201`/`ScenarioA_20260601_201615`는 비교 조건을 만족한다.
+`ScenarioA_GenericHeavy_002`/`ScenarioA_IrisHeavy_002`, `ScenarioA_20260601_201201`/`ScenarioA_20260601_201615`, `ScenarioA_20260601_203950`/`ScenarioA_20260601_204211`는 비교 조건을 만족한다.
 
 공통 조건:
 
@@ -156,22 +158,34 @@ Client snapshot 결과:
 | ScenarioA_20260601_201615 | Commander | 120 | 1 |
 | ScenarioA_20260601_201615 | FieldAgent | 40 | 0 |
 | ScenarioA_20260601_201615 | Spectator | 0 | 1 |
+| ScenarioA_20260601_203950 | Commander | 120 | 1 |
+| ScenarioA_20260601_203950 | FieldAgent | 120 | 1 |
+| ScenarioA_20260601_203950 | Spectator | 120 | 1 |
+| ScenarioA_20260601_204211 | Commander | 120 | 1 |
+| ScenarioA_20260601_204211 | FieldAgent | 40 | 0 |
+| ScenarioA_20260601_204211 | Spectator | 0 | 1 |
 
 결론:
 
-- Generic heavy는 두 번 모두 control run으로 유효하다.
-- Iris heavy는 두 번 모두 role-based filtering 결과가 기대값과 일치한다.
+- Generic heavy는 세 번 모두 control run으로 유효하다.
+- Iris heavy는 세 번 모두 role-based filtering 결과가 기대값과 일치한다.
 - FieldAgent와 Spectator는 actor count 감소와 bandwidth 감소가 함께 나타났다.
+
+주의:
+
+- `ScenarioA_20260601_203950`은 no-iris run 종료 시 서버가 남은 client 하나보다 먼저 종료된 정황이 있었다.
+- 다만 자동 client snapshot 3개가 모두 기록됐고, server metrics도 `ConnectionCount=3` 기준 role별 61 samples를 확보했으므로 마지막 반복 측정으로 포함한다.
 
 ## 7. Commander bandwidth 감소는 추가 확인 필요
 
-120 actor heavy run에서 Commander는 Generic과 Iris 모두 detail actor 120개와 summary actor 1개를 받았다. 그런데 2회 측정 모두 `AvgOutBytesPerSecond`는 Iris에서 더 낮았다.
+120 actor heavy run에서 Commander는 Generic과 Iris 모두 detail actor 120개와 summary actor 1개를 받았다. 그런데 3회 측정 모두 `AvgOutBytesPerSecond`는 Iris에서 더 낮았다.
 
 | Role | Generic AvgOutBytesPerSecond | Iris AvgOutBytesPerSecond | 차이 |
 |------|------------------------------|---------------------------|------|
 | Commander | 2280.28 | 2093.87 | -8.2% |
 | Commander repeat | 2338.31 | 2109.62 | -9.8% |
-| Commander 2회 평균 | 2309.30 | 2101.75 | -9.0% |
+| Commander final repeat | 2334.49 | 2097.70 | -10.1% |
+| Commander 3회 평균 | 2317.69 | 2100.40 | -9.4% |
 
 이 결과는 나쁜 결과가 아니라 추가 질문이다.
 
@@ -181,7 +195,7 @@ Client snapshot 결과:
 - 측정 window 시작 시점의 미세한 차이
 - Iris 경로의 serialization 또는 scheduling 차이
 - actor count는 같지만 property update timing이 다르게 분포했을 가능성
-- 측정 run 수가 아직 2쌍뿐이라 편차를 안정적으로 말하기 어려움
+- Generic과 Iris path 차이를 분리하려면 별도 profiling 산출물이 필요함
 
 현재 판정:
 
@@ -196,13 +210,13 @@ Scenario A를 기능 데모가 아니라 포트폴리오용 재현 가능한 샘
 ### 반드시 마무리할 작업
 
 1. Scenario A 마무리 문서 보강
-   - 현재 상태, A6/A6.5/A7 체크리스트, heavy run 결과 표는 2026-06-01 기준으로 2회 측정까지 갱신했다.
+   - 현재 상태, A6/A6.5/A7 체크리스트, heavy run 결과 표는 2026-06-01 기준으로 3회 측정까지 갱신했다.
    - 아직 구현 class 목록, 실행 방법, UE 5.7.1 Iris 제약/주의점, 다음 시나리오로 넘길 TODO를 한 섹션으로 정리해야 한다.
 
 2. 반복 측정
-   - 같은 heavy 조건을 1회 더 반복해 최소 3쌍을 확보한다.
-   - FieldAgent/Spectator bandwidth 감소 방향이 유지되는지 확인한다.
-   - 평균과 편차를 `PerformanceRuns.md`에 추가한다.
+   - Scenario A heavy bandwidth 반복 측정은 3쌍으로 마감한다.
+   - FieldAgent/Spectator bandwidth 감소 방향이 3회 모두 유지됨을 확인했다.
+   - 평균과 편차는 `PerformanceRuns.md`에 기록했다.
 
 3. Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
    - 지금은 자체 CSV인 `server_network_metrics.csv`가 있다.

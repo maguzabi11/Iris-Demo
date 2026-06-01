@@ -492,6 +492,8 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 | 2026-05-30 | Iris heavy | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2093.87 | Detail=40, Summary=0, AvgOut=1740.18 | Detail=0, Summary=1, AvgOut=1571.51 | `ScenarioA_IrisHeavy_002`. FieldAgent -24.6%, Spectator -30.6%, NetDriver DeltaOutTotalBytes=325034 |
 | 2026-06-01 | Generic heavy repeat | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2338.31 | Detail=120, Summary=1, AvgOut=2338.30 | Detail=120, Summary=1, AvgOut=2337.30 | `ScenarioA_20260601_201201`. 60초 metrics window, NetDriver DeltaOutTotalBytes=419329 |
 | 2026-06-01 | Iris heavy repeat | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2109.62 | Detail=40, Summary=0, AvgOut=1755.75 | Detail=0, Summary=1, AvgOut=1579.67 | `ScenarioA_20260601_201615`. FieldAgent -24.9%, Spectator -32.4%, NetDriver DeltaOutTotalBytes=327108 |
+| 2026-06-01 | Generic heavy final repeat | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2334.49 | Detail=120, Summary=1, AvgOut=2333.87 | Detail=120, Summary=1, AvgOut=2334.34 | `ScenarioA_20260601_203950`. 60초 metrics window, NetDriver DeltaOutTotalBytes=419448. 서버가 남은 client 하나보다 먼저 종료된 정황은 있으나 snapshot/metrics는 유효 |
+| 2026-06-01 | Iris heavy final repeat | Dedicated server, local binary | 3 clients | 1001 | Detail=120, Summary=1, AvgOut=2097.70 | Detail=40, Summary=0, AvgOut=1761.10 | Detail=0, Summary=1, AvgOut=1577.85 | `ScenarioA_20260601_204211`. FieldAgent -24.5%, Spectator -32.4%, NetDriver DeltaOutTotalBytes=326707 |
 
 ## 7. 결정 로그
 
@@ -511,10 +513,10 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 가장 작은 다음 커밋 후보:
 
 1. A7 마무리 문서화: 구현 class 목록, 실행 방법, UE 5.7.1 Iris 제약/주의점, 다음 시나리오 TODO를 정리
-2. 같은 heavy 조건을 1회 더 반복 측정해 최소 3쌍 평균과 편차를 `PerformanceRuns.md`에 추가
-3. Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로를 작성
+2. Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로를 작성
+3. Scenario C UObject/subobject replication 최소 구현 착수
 4. 역할 변경 console command와 filter membership 갱신 검증 추가
 5. actor despawn 시 filter membership 정리와 Spectator summary update cadence 지연 처리
 6. `Docs/Iris기본지식.md`에 Scenario A에서 새로 확인한 실행/측정 제약 반영
 
-detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 listen server/dedicated server 양쪽 role별 snapshot으로 확인했다. 2026-06-01 기준으로 120 actor heavy 조건의 outgoing bandwidth 감소가 2회 측정에서 같은 방향으로 재현됐으므로, 다음부터는 최소 3쌍까지 반복 측정을 늘리고 UE profiling 산출물 수집 경로를 붙여 Scenario A를 제출 가능한 단위로 마감한다.
+detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 listen server/dedicated server 양쪽 role별 snapshot으로 확인했다. 2026-06-01 기준으로 120 actor heavy 조건의 outgoing bandwidth 감소가 3쌍 측정에서 같은 방향으로 재현됐으므로, Scenario A의 actor filtering/bandwidth 측정은 여기서 마감한다. 다음부터는 UE profiling 산출물 수집 경로를 붙이거나 Scenario C UObject/subobject replication으로 확장한다.

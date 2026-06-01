@@ -6,7 +6,7 @@
 
 ## 1. 데이터 준비 상태
 
-2026-06-01 기준 12 actor baseline, 120 actor heavy 1차 비교, 120 actor heavy 반복 측정 1쌍을 확보했다.
+2026-06-01 기준 12 actor baseline, 120 actor heavy 1차 비교, 120 actor heavy 반복 측정 2쌍을 확보했다.
 
 현재 상태:
 
@@ -15,7 +15,8 @@
 - `ScenarioA_GenericHeavy_001` / `ScenarioA_IrisHeavy_001`: 실행은 완료됐지만 오래된 Server/Client 바이너리로 실행되어 heavy 측정으로는 무효
 - `ScenarioA_GenericHeavy_002` / `ScenarioA_IrisHeavy_002`: 새 Server/Client 바이너리로 재측정했고 120 actor, 60초 metrics window 조건을 만족한다.
 - `ScenarioA_20260601_201201` / `ScenarioA_20260601_201615`: 같은 heavy 조건으로 반복 측정했고 client/server 산출물과 60초 metrics window 조건을 만족한다.
-- 결론: 12 actor run에서는 actor count 감소만 확인되고 bandwidth 개선은 확인되지 않았다. 120 actor heavy run에서는 2회 모두 Iris filtering에서 FieldAgent/Spectator의 actor count와 outgoing bandwidth가 함께 감소했다.
+- `ScenarioA_20260601_203950` / `ScenarioA_20260601_204211`: 세 번째 heavy 반복 측정이다. no-iris run에서 서버가 남은 client 하나보다 먼저 종료된 정황은 있었지만, client snapshot 3개와 `ConnectionCount=3` 기준 60초 metrics window 61 samples가 모두 있어 측정값은 유효로 판정한다.
+- 결론: 12 actor run에서는 actor count 감소만 확인되고 bandwidth 개선은 확인되지 않았다. 120 actor heavy run에서는 3회 모두 Iris filtering에서 FieldAgent/Spectator의 actor count와 outgoing bandwidth가 함께 감소했다.
 
 필수 비교 run:
 
@@ -27,6 +28,8 @@
 | Iris heavy | 필요 | 확보 | RunId `ScenarioA_IrisHeavy_002`, detail actor 120개 조건 실행 |
 | Generic heavy repeat | 필요 | 확보 | RunId `ScenarioA_20260601_201201`, detail actor 120개 조건 실행 |
 | Iris heavy repeat | 필요 | 확보 | RunId `ScenarioA_20260601_201615`, detail actor 120개 조건 실행 |
+| Generic heavy final repeat | 필요 | 확보 | RunId `ScenarioA_20260601_203950`, detail actor 120개 조건 실행 |
+| Iris heavy final repeat | 필요 | 확보 | RunId `ScenarioA_20260601_204211`, detail actor 120개 조건 실행 |
 
 ## 2. 유효한 run 판정 기준
 
@@ -83,6 +86,17 @@ Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_2012
 Saved/Cooked/WindowsClient/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_201615/client_snapshots.csv
 Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_201615/run.json
 Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_201615/server_network_metrics.csv
+```
+
+`ScenarioA_20260601_203950`와 `ScenarioA_20260601_204211`도 아래 위치에서 client/server 산출물을 모두 확인했다.
+
+```text
+Saved/Cooked/WindowsClient/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_203950/client_snapshots.csv
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_203950/run.json
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_203950/server_network_metrics.csv
+Saved/Cooked/WindowsClient/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_204211/client_snapshots.csv
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_204211/run.json
+Saved/Cooked/WindowsServer/IrisDemo/Saved/ScenarioA/Runs/ScenarioA_20260601_204211/server_network_metrics.csv
 ```
 
 `run.json`에서 확인할 것:
@@ -222,6 +236,8 @@ Role != Unassigned
 | ScenarioA_IrisHeavy_002 | `2026-05-30T18:26:07.435Z` ~ `2026-05-30T18:27:07.426Z` | 61 | 325034 |
 | ScenarioA_20260601_201201 | `2026-06-01T20:12:38.478Z` ~ `2026-06-01T20:13:38.459Z` | 61 | 419329 |
 | ScenarioA_20260601_201615 | `2026-06-01T20:16:52.954Z` ~ `2026-06-01T20:17:52.930Z` | 61 | 327108 |
+| ScenarioA_20260601_203950 | `2026-06-01T20:40:27.432Z` ~ `2026-06-01T20:41:27.426Z` | 61 | 419448 |
+| ScenarioA_20260601_204211 | `2026-06-01T20:42:47.566Z` ~ `2026-06-01T20:43:47.547Z` | 61 | 326707 |
 
 `OutBytesPerSecond`는 이 안정 구간의 단순 평균이다. `DeltaOutTotalBytes`는 같은 구간에서 마지막 `OutTotalBytes`와 첫 `OutTotalBytes`의 차이다.
 
@@ -314,7 +330,7 @@ Client snapshot:
 
 ## 8. Heavy 반복 측정 확인
 
-2026-06-01에 기본 자동 RunId로 같은 heavy 조건을 한 번 더 측정했다.
+2026-06-01에 기본 자동 RunId로 같은 heavy 조건을 두 번 더 측정했다.
 
 Generic replication:
 
@@ -334,6 +350,8 @@ Tools\RunLocalBinariesMultiplay.bat --iris
 |-------|------|---------------|-----------|---------------|----------------|-------------|------------------------|
 | ScenarioA_20260601_201201 | Generic | false | `2026-06-01T20:12:03.398Z` | Sensor 60, Drone 30, SupplyCrate 30, total 120 | 1 | 95.000 | 35.000 / 60.000 |
 | ScenarioA_20260601_201615 | Iris | true | `2026-06-01T20:16:16.981Z` | Sensor 60, Drone 30, SupplyCrate 30, total 120 | 1 | 95.000 | 35.000 / 60.000 |
+| ScenarioA_20260601_203950 | Generic | false | `2026-06-01T20:39:52.023Z` | Sensor 60, Drone 30, SupplyCrate 30, total 120 | 1 | 95.000 | 35.000 / 60.000 |
+| ScenarioA_20260601_204211 | Iris | true | `2026-06-01T20:42:12.466Z` | Sensor 60, Drone 30, SupplyCrate 30, total 120 | 1 | 95.000 | 35.000 / 60.000 |
 
 Client snapshot:
 
@@ -345,8 +363,14 @@ Client snapshot:
 | ScenarioA_20260601_201615 | Commander | -1 | 60 | 30 | 30 | 120 | 1 | 54 |
 | ScenarioA_20260601_201615 | FieldAgent | 0 | 20 | 10 | 10 | 40 | 0 | 54 |
 | ScenarioA_20260601_201615 | Spectator | -1 | 0 | 0 | 0 | 0 | 1 | 0 |
+| ScenarioA_20260601_203950 | Commander | -1 | 60 | 30 | 30 | 120 | 1 | 54 |
+| ScenarioA_20260601_203950 | FieldAgent | 0 | 60 | 30 | 30 | 120 | 1 | 54 |
+| ScenarioA_20260601_203950 | Spectator | -1 | 60 | 30 | 30 | 120 | 1 | 54 |
+| ScenarioA_20260601_204211 | Commander | -1 | 60 | 30 | 30 | 120 | 1 | 53 |
+| ScenarioA_20260601_204211 | FieldAgent | 0 | 20 | 10 | 10 | 40 | 0 | 53 |
+| ScenarioA_20260601_204211 | Spectator | -1 | 0 | 0 | 0 | 0 | 1 | 0 |
 
-반복 측정에서도 Generic은 세 role 모두 detail actor 120개와 summary actor 1개를 수신했고, Iris filtering은 Commander 120개, FieldAgent zone 0 detail 40개, Spectator detail 0개 패턴을 유지했다.
+반복 측정에서도 Generic은 세 role 모두 detail actor 120개와 summary actor 1개를 수신했고, Iris filtering은 Commander 120개, FieldAgent zone 0 detail 40개, Spectator detail 0개 패턴을 유지했다. `ScenarioA_20260601_203950`은 서버가 남은 client 하나보다 먼저 종료된 정황이 있었지만, 자동 client snapshot 3개와 role별 61 samples가 모두 남았으므로 마지막 반복 측정으로 포함한다.
 
 ## 9. 결과 표
 
@@ -411,6 +435,12 @@ Heavy NetDriver delta comparison:
 | ScenarioA_20260601_201615 | Iris | true | Commander | 120 | 1 | 2109.62 | 126856 | 61 | Bandwidth lower |
 | ScenarioA_20260601_201615 | Iris | true | FieldAgent | 40 | 0 | 1755.75 | 105421 | 61 | Actor count expected, bandwidth lower |
 | ScenarioA_20260601_201615 | Iris | true | Spectator | 0 | 1 | 1579.67 | 94831 | 61 | Actor count expected, bandwidth lower |
+| ScenarioA_20260601_203950 | Generic | false | Commander | 120 | 1 | 2334.49 | 139797 | 61 | Recorded |
+| ScenarioA_20260601_203950 | Generic | false | FieldAgent | 120 | 1 | 2333.87 | 139831 | 61 | Recorded |
+| ScenarioA_20260601_203950 | Generic | false | Spectator | 120 | 1 | 2334.34 | 139820 | 61 | Recorded |
+| ScenarioA_20260601_204211 | Iris | true | Commander | 120 | 1 | 2097.70 | 126506 | 61 | Bandwidth lower |
+| ScenarioA_20260601_204211 | Iris | true | FieldAgent | 40 | 0 | 1761.10 | 105470 | 61 | Actor count expected, bandwidth lower |
+| ScenarioA_20260601_204211 | Iris | true | Spectator | 0 | 1 | 1577.85 | 94731 | 61 | Actor count expected, bandwidth lower |
 
 2026-06-01 avg bandwidth comparison:
 
@@ -426,14 +456,28 @@ Heavy NetDriver delta comparison:
 |----------------------------|-------------------------|------------|--------------|
 | 419329 | 327108 | -92221 | -22.0% |
 
-2회 heavy 평균:
+2026-06-01 final repeat avg bandwidth comparison:
 
-| Role/Scope | Generic average | Iris average | Difference | Difference % |
-|------------|-----------------|--------------|------------|--------------|
-| Commander AvgOutBytesPerSecond | 2309.30 | 2101.75 | -207.55 | -9.0% |
-| FieldAgent AvgOutBytesPerSecond | 2322.65 | 1747.97 | -574.68 | -24.7% |
-| Spectator AvgOutBytesPerSecond | 2300.57 | 1575.59 | -724.98 | -31.5% |
-| NetDriver DeltaOutTotalBytes | 415543.50 | 326071.00 | -89472.50 | -21.5% |
+| Role | Generic AvgOutBytesPerSecond | Iris AvgOutBytesPerSecond | Difference | Difference % |
+|------|------------------------------|---------------------------|------------|--------------|
+| Commander | 2334.49 | 2097.70 | -236.79 | -10.1% |
+| FieldAgent | 2333.87 | 1761.10 | -572.77 | -24.5% |
+| Spectator | 2334.34 | 1577.85 | -756.49 | -32.4% |
+
+2026-06-01 final repeat NetDriver delta comparison:
+
+| Generic DeltaOutTotalBytes | Iris DeltaOutTotalBytes | Difference | Difference % |
+|----------------------------|-------------------------|------------|--------------|
+| 419448 | 326707 | -92741 | -22.1% |
+
+3회 heavy 평균:
+
+| Role/Scope | Generic average | Generic stdev | Iris average | Iris stdev | Difference | Difference % |
+|------------|-----------------|---------------|--------------|-----------|------------|--------------|
+| Commander AvgOutBytesPerSecond | 2317.69 | 32.46 | 2100.40 | 8.21 | -217.30 | -9.4% |
+| FieldAgent AvgOutBytesPerSecond | 2326.39 | 16.94 | 1752.34 | 10.87 | -574.05 | -24.7% |
+| Spectator AvgOutBytesPerSecond | 2311.83 | 41.58 | 1576.34 | 4.28 | -735.48 | -31.8% |
+| NetDriver DeltaOutTotalBytes | 416845.00 | 4405.87 | 326283.00 | 1100.09 | -90562.00 | -21.7% |
 
 ## 10. 현재 해석
 
@@ -475,13 +519,13 @@ Heavy NetDriver delta comparison:
 
 120 actor heavy 관찰값:
 
-- Generic heavy는 두 번 모두 세 role이 detail actor 120개와 summary actor 1개를 수신했다.
-- Iris heavy Commander는 두 번 모두 detail actor 120개와 summary actor 1개를 수신했다.
-- Iris heavy FieldAgent는 두 번 모두 자기 zone detail actor 40개만 수신했고 summary actor는 수신하지 않았다.
-- Iris heavy Spectator는 두 번 모두 detail actor 0개와 summary actor 1개만 수신했다.
+- Generic heavy는 세 번 모두 세 role이 detail actor 120개와 summary actor 1개를 수신했다.
+- Iris heavy Commander는 세 번 모두 detail actor 120개와 summary actor 1개를 수신했다.
+- Iris heavy FieldAgent는 세 번 모두 자기 zone detail actor 40개만 수신했고 summary actor는 수신하지 않았다.
+- Iris heavy Spectator는 세 번 모두 detail actor 0개와 summary actor 1개만 수신했다.
 - role-based actor filtering은 120 actor 조건의 반복 측정에서도 기대대로 동작했다.
-- 2회 heavy 평균 기준 `AvgOutBytesPerSecond`는 Generic 대비 Commander -9.0%, FieldAgent -24.7%, Spectator -31.5%로 낮아졌다.
-- NetDriver 기준 60초 window의 `DeltaOutTotalBytes`도 2회 평균 415543.50에서 326071.00으로 줄어 -21.5% 차이를 보였다.
+- 3회 heavy 평균 기준 `AvgOutBytesPerSecond`는 Generic 대비 Commander -9.4%, FieldAgent -24.7%, Spectator -31.8%로 낮아졌다.
+- NetDriver 기준 60초 window의 `DeltaOutTotalBytes`도 3회 평균 416845.00에서 326283.00으로 줄어 -21.7% 차이를 보였다.
 - 따라서 현재 heavy 조건에서는 Iris role-based filtering이 수신 actor count 감소와 함께 서버 outgoing bandwidth 감소로도 이어졌다고 기록한다.
 
 주의:
@@ -492,7 +536,7 @@ Heavy NetDriver delta comparison:
 
 ## 11. 다음 작업
 
-1. heavy 조건 반복 측정을 1회 더 추가해 최소 3쌍으로 평균과 편차를 확인한다.
-2. Commander에서도 -9.0% 평균 감소가 나온 원인을 별도 확인한다. 같은 actor count를 받는 role이므로 Iris 자체 비용/Generic 경로 차이, window 시작 시점, 패킷/번치 구성 차이를 분리해 본다.
-3. Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로를 추가해 자체 CSV 외의 근거를 확보한다.
+1. Scenario A bandwidth 반복 측정은 3쌍으로 마감한다.
+2. Commander에서도 -9.4% 평균 감소가 나온 원인은 다음 profiling 작업에서 별도 확인한다. 같은 actor count를 받는 role이므로 Iris 자체 비용/Generic 경로 차이, window 시작 시점, 패킷/번치 구성 차이를 분리해 본다.
+3. Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로는 다음 단계의 profiling 작업으로 넘긴다.
 4. 다음 단계에서는 UObject subobject replication 또는 seamless travel 검증으로 확장하되, 동일한 RunId 산출물 기준을 유지한다.
