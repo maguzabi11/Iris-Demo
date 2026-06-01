@@ -8,6 +8,7 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
+#include "HAL/PlatformMisc.h"
 #include "IrisDemo.h"
 #include "Misc/CommandLine.h"
 #include "Misc/DateTime.h"
@@ -210,14 +211,34 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 
 	float AutoSnapshotDelay = 95.0f;
 	FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoSnapshotDelay="), AutoSnapshotDelay);
-	if (AutoSnapshotDelay <= 0.0f)
-	{
-		return;
-	}
+	FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoExitGraceSeconds="), ScenarioAAutoExitGraceSeconds);
+	ScenarioAAutoExitGraceSeconds = FMath::Max(0.0f, ScenarioAAutoExitGraceSeconds);
+
+	FString RawAutoExit;
+	bScenarioAAutoExit = FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoExit="), RawAutoExit)
+		&& (RawAutoExit.Equals(TEXT("1")) || RawAutoExit.Equals(TEXT("true"), ESearchCase::IgnoreCase) || RawAutoExit.Equals(TEXT("yes"), ESearchCase::IgnoreCase));
 
 	UWorld* World = GetWorld();
 	if (!World)
 	{
+		return;
+	}
+
+	if (AutoSnapshotDelay <= 0.0f)
+	{
+		if (bScenarioAAutoExit)
+		{
+			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A client auto exit requested but auto snapshot is disabled: Grace=%.2f Controller=%s"),
+				ScenarioAAutoExitGraceSeconds,
+				*GetName());
+
+			World->GetTimerManager().SetTimer(
+				ScenarioAAutoExitTimerHandle,
+				this,
+				&AIrisDemoPlayerController::RequestScenarioAAutoExit,
+				ScenarioAAutoExitGraceSeconds,
+				false);
+		}
 		return;
 	}
 
@@ -228,8 +249,10 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 		AutoSnapshotDelay,
 		false);
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A auto client snapshot scheduled: Delay=%.2f Controller=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A auto client snapshot scheduled: Delay=%.2f AutoExit=%s Grace=%.2f Controller=%s"),
 		AutoSnapshotDelay,
+		bScenarioAAutoExit ? TEXT("Enabled") : TEXT("Disabled"),
+		ScenarioAAutoExitGraceSeconds,
 		*GetName());
 }
 
@@ -242,6 +265,30 @@ void AIrisDemoPlayerController::LogScenarioAAutoBaselineSnapshot()
 
 	bScenarioAAutoSnapshotLogged = true;
 	LogScenarioABaselineSnapshot(TEXT("Auto"));
+
+	if (bScenarioAAutoExit)
+	{
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->GetTimerManager().SetTimer(
+				ScenarioAAutoExitTimerHandle,
+				this,
+				&AIrisDemoPlayerController::RequestScenarioAAutoExit,
+				ScenarioAAutoExitGraceSeconds,
+				false);
+
+			UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client auto exit scheduled: Delay=%.2f Controller=%s"),
+				ScenarioAAutoExitGraceSeconds,
+				*GetName());
+		}
+	}
+}
+
+void AIrisDemoPlayerController::RequestScenarioAAutoExit()
+{
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client auto exit requested: Controller=%s"), *GetName());
+	FPlatformMisc::RequestExit(false);
 }
 
 bool AIrisDemoPlayerController::ShouldUseTouchControls() const

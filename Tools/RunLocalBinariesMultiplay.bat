@@ -35,6 +35,8 @@ set "TRACE_SERVER=0"
 set "SERVER_TRACE_ARGS="
 set "SERVER_TRACE_DIR="
 set "SERVER_TRACE_FILE="
+set "AUTO_CLOSE=0"
+set "AUTO_CLOSE_GRACE=5"
 
 :: Command line argument parsing
 :loop
@@ -67,6 +69,15 @@ if /i "!CURRENT_ARG!"=="--no-iris" (
     set "DRY_RUN=1"
 ) else if /i "!CURRENT_ARG!"=="--trace-server" (
     set "TRACE_SERVER=1"
+) else if /i "!CURRENT_ARG!"=="--auto-close" (
+    set "AUTO_CLOSE=1"
+) else if /i "!CURRENT_ARG!"=="--auto-exit" (
+    set "AUTO_CLOSE=1"
+) else if /i "!CURRENT_ARG!"=="--auto-close-grace" (
+    set "AUTO_CLOSE_GRACE=%~2"
+    shift
+) else if /i "!CURRENT_ARG:~0,19!"=="--auto-close-grace=" (
+    set "AUTO_CLOSE_GRACE=!CURRENT_ARG:~19!"
 ) else if /i "!CURRENT_ARG!"=="--server-wait-timeout" (
     set "SERVER_STARTUP_WAIT=%~2"
     shift
@@ -105,7 +116,11 @@ if "%ROLE_FILTERING_EXPLICIT%"=="0" (
 
 set "IRIS_ARG=-UseIrisReplication=%USE_IRIS% -net.Iris.UseIrisReplication=%USE_IRIS%"
 set "RUN_ARG=-ScenarioARunId=%SCENARIO_RUN_ID%"
-set "ALL_ARGS=%IRIS_ARG% %RUN_ARG% %ROLE_FILTERING_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
+set "AUTO_CLOSE_ARG="
+if "%AUTO_CLOSE%"=="1" (
+    set "AUTO_CLOSE_ARG=-ScenarioAAutoExit=1 -ScenarioAAutoExitGraceSeconds=%AUTO_CLOSE_GRACE%"
+)
+set "ALL_ARGS=%IRIS_ARG% %RUN_ARG% %ROLE_FILTERING_ARG% %AUTO_CLOSE_ARG% %SCENARIO_ARGS% %EXTRA_ARGS%"
 
 if "%TRACE_SERVER%"=="1" (
     set "SERVER_TRACE_DIR=%PROJECT_ROOT%\Saved\ScenarioA\Runs\%SCENARIO_RUN_ID%"
@@ -128,6 +143,8 @@ echo Server Wait:  %SERVER_STARTUP_WAIT%s
 echo Role Filter:  %ROLE_FILTERING_ARG%
 echo Trace Server: %TRACE_SERVER%
 if "%TRACE_SERVER%"=="1" echo Trace File:   %SERVER_TRACE_FILE%
+echo Auto Close:   %AUTO_CLOSE%
+if "%AUTO_CLOSE%"=="1" echo Auto Grace:   %AUTO_CLOSE_GRACE%s
 echo Base Args:    %SCENARIO_ARGS%
 echo Extra Args:   %EXTRA_ARGS%
 echo ===================================================

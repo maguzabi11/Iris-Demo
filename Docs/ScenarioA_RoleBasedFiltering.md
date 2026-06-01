@@ -329,6 +329,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 각 local client는 `-ScenarioAAutoSnapshotDelay=<seconds>`가 0보다 크면 같은 RunId의 `client_snapshots.csv`에 `Source=Auto` row를 한 번 append한다. `IrisRelayLogBaselineSnapshot`을 수동 실행하면 같은 파일에 `Source=Console` row를 추가 append한다.
 - `RunId`는 `-ScenarioARunId=<id>`로 넘기며, `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 기본적으로 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 모든 client에 공통 전달한다.
 - 수동으로 고정하려면 배치 실행 시 `--run-id ScenarioA_manual_001`처럼 넘긴다.
+- 수집 완료 후 창을 직접 닫지 않으려면 local binary 배치에 `--auto-close`를 붙인다. 이 옵션은 server/client에 `-ScenarioAAutoExit=1 -ScenarioAAutoExitGraceSeconds=5`를 전달한다. 서버는 run duration과 network metrics window가 끝난 뒤 Grace 이후 종료하고, client는 auto snapshot 기록 뒤 Grace 이후 종료한다.
 
 `run.json` 주요 필드:
 

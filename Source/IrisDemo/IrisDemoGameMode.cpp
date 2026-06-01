@@ -10,6 +10,7 @@
 #include "Iris/ReplicationSystem/ReplicationSystem.h"
 #include "IrisDemo.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformMisc.h"
 #include "Misc/FileHelper.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
@@ -295,6 +296,8 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	EScenarioAOptionSource NetworkMetricsDurationSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource RunIdSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource RoleFilteringRuntimeSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource AutoExitSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource AutoExitGraceSource = EScenarioAOptionSource::None;
 
 	FString RoleFilteringSource = TEXT("Default");
 	if (TryReadScenarioABoolConfig(ScenarioAGameModeConfigSection, ScenarioAEnableRoleFilteringConfigKey, bScenarioAEnableRoleFiltering))
@@ -311,6 +314,8 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsInterval"), ScenarioANetworkMetricsInterval, NetworkMetricsIntervalSource);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsStartDelay"), ScenarioANetworkMetricsStartDelay, NetworkMetricsStartDelaySource);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsDuration"), ScenarioANetworkMetricsDuration, NetworkMetricsDurationSource);
+	TryReadScenarioABoolOption(Options, TEXT("ScenarioAAutoExit"), bScenarioAAutoExit, AutoExitSource);
+	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAAutoExitGraceSeconds"), ScenarioAAutoExitGraceSeconds, AutoExitGraceSource);
 
 	if (SensorCountSource == EScenarioAOptionSource::None)
 	{
@@ -364,8 +369,9 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	ScenarioANetworkMetricsInterval = FMath::Max(0.0f, ScenarioANetworkMetricsInterval);
 	ScenarioANetworkMetricsStartDelay = FMath::Max(0.0f, ScenarioANetworkMetricsStartDelay);
 	ScenarioANetworkMetricsDuration = FMath::Max(0.0f, ScenarioANetworkMetricsDuration);
+	ScenarioAAutoExitGraceSeconds = FMath::Max(0.0f, ScenarioAAutoExitGraceSeconds);
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RunId=%s RunIdSource=%s RoleFiltering=%s RoleFilteringSource=%s Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s NetworkMetricsInterval:%s NetworkMetricsStartDelay:%s NetworkMetricsDuration:%s]"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RunId=%s RunIdSource=%s RoleFiltering=%s RoleFilteringSource=%s AutoExit=%s AutoExitGrace=%.2f Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s NetworkMetricsInterval:%s NetworkMetricsStartDelay:%s NetworkMetricsDuration:%s AutoExit:%s AutoExitGrace:%s]"),
 		*Options,
 		FCommandLine::Get(),
 		*GetIrisReplicationCommandLineOverrideLabel(),
@@ -374,6 +380,8 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		*ScenarioARunIdSource,
 		bScenarioAEnableRoleFiltering ? TEXT("Enabled") : TEXT("Disabled"),
 		*RoleFilteringSource,
+		bScenarioAAutoExit ? TEXT("Enabled") : TEXT("Disabled"),
+		ScenarioAAutoExitGraceSeconds,
 		GetScenarioAOptionSourceLabel(SeedSource),
 		GetScenarioAOptionSourceLabel(SensorCountSource),
 		GetScenarioAOptionSourceLabel(DroneCountSource),
@@ -382,7 +390,9 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		GetScenarioAOptionSourceLabel(RunDurationSource),
 		GetScenarioAOptionSourceLabel(NetworkMetricsIntervalSource),
 		GetScenarioAOptionSourceLabel(NetworkMetricsStartDelaySource),
-		GetScenarioAOptionSourceLabel(NetworkMetricsDurationSource));
+		GetScenarioAOptionSourceLabel(NetworkMetricsDurationSource),
+		GetScenarioAOptionSourceLabel(AutoExitSource),
+		GetScenarioAOptionSourceLabel(AutoExitGraceSource));
 }
 
 void AIrisDemoGameMode::BeginPlay()
@@ -433,6 +443,28 @@ void AIrisDemoGameMode::BeginPlay()
 			StartScenarioANetworkMetrics();
 		}
 	}
+
+	if (bScenarioAAutoExit)
+	{
+		const float MetricsEndTime = ScenarioANetworkMetricsDuration > 0.0f
+			? ScenarioANetworkMetricsStartDelay + ScenarioANetworkMetricsDuration
+			: 0.0f;
+		const float AutoExitDelay = FMath::Max(ScenarioARunDuration, MetricsEndTime) + ScenarioAAutoExitGraceSeconds;
+		if (AutoExitDelay > 0.0f)
+		{
+			GetWorldTimerManager().SetTimer(
+				ScenarioAAutoExitTimerHandle,
+				this,
+				&AIrisDemoGameMode::RequestScenarioAAutoExit,
+				AutoExitDelay,
+				false);
+
+			UE_LOG(LogIrisDemo, Log, TEXT("Scenario A server auto exit scheduled: Delay=%.2f Grace=%.2f RunId=%s"),
+				AutoExitDelay,
+				ScenarioAAutoExitGraceSeconds,
+				*MakeScenarioARunId(ScenarioARunId));
+		}
+	}
 }
 
 void AIrisDemoGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -443,8 +475,15 @@ void AIrisDemoGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsStartTimerHandle);
 	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsTimerHandle);
 	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsStopTimerHandle);
+	GetWorldTimerManager().ClearTimer(ScenarioAAutoExitTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void AIrisDemoGameMode::RequestScenarioAAutoExit()
+{
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A server auto exit requested: RunId=%s"), *MakeScenarioARunId(ScenarioARunId));
+	FPlatformMisc::RequestExit(false);
 }
 
 void AIrisDemoGameMode::PostLogin(APlayerController* NewPlayer)
@@ -1011,6 +1050,8 @@ void AIrisDemoGameMode::WriteScenarioARunMetadata() const
 		"  \"networkMetricsInterval\": %.3f,\n"
 		"  \"networkMetricsStartDelay\": %.3f,\n"
 		"  \"networkMetricsDuration\": %.3f,\n"
+		"  \"autoExit\": %s,\n"
+		"  \"autoExitGraceSeconds\": %.3f,\n"
 		"  \"runIdSource\": %s,\n"
 		"  \"commandLine\": %s\n"
 		"}\n"),
@@ -1033,6 +1074,8 @@ void AIrisDemoGameMode::WriteScenarioARunMetadata() const
 		ScenarioANetworkMetricsInterval,
 		ScenarioANetworkMetricsStartDelay,
 		ScenarioANetworkMetricsDuration,
+		bScenarioAAutoExit ? TEXT("true") : TEXT("false"),
+		ScenarioAAutoExitGraceSeconds,
 		*QuoteScenarioAJsonString(ScenarioARunIdSource),
 		*QuoteScenarioAJsonString(FCommandLine::Get()));
 

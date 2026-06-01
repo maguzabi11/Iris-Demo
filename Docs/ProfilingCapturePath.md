@@ -45,13 +45,13 @@ cpu,frame,bookmark,log,net
 Generic trace run:
 
 ```bat
-Tools\RunLocalBinariesMultiplay.bat --no-iris --trace-server --run-id ScenarioA_GenericTrace_001
+Tools\RunLocalBinariesMultiplay.bat --no-iris --trace-server --auto-close --run-id ScenarioA_GenericTrace_001
 ```
 
 Iris trace run:
 
 ```bat
-Tools\RunLocalBinariesMultiplay.bat --iris --trace-server --run-id ScenarioA_IrisTrace_001
+Tools\RunLocalBinariesMultiplay.bat --iris --trace-server --auto-close --run-id ScenarioA_IrisTrace_001
 ```
 
 실제 서버에 붙는 trace 인자:
@@ -59,6 +59,14 @@ Tools\RunLocalBinariesMultiplay.bat --iris --trace-server --run-id ScenarioA_Iri
 ```text
 -trace=cpu,frame,bookmark,log,net -tracefile="<Project>/Saved/ScenarioA/Runs/<RunId>/server_trace.utrace" -tracefiletrunc -NetTrace=1
 ```
+
+`--auto-close`는 server/client 공통으로 아래 인자를 추가한다.
+
+```text
+-ScenarioAAutoExit=1 -ScenarioAAutoExitGraceSeconds=5
+```
+
+서버는 `max(ScenarioARunDuration, ScenarioANetworkMetricsStartDelay + ScenarioANetworkMetricsDuration) + Grace` 이후 정상 종료를 요청한다. 클라이언트는 `ScenarioAAutoSnapshotDelay`에 snapshot CSV를 기록한 뒤 Grace 이후 정상 종료를 요청한다.
 
 ## 4. 산출물 위치
 

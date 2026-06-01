@@ -63,8 +63,16 @@ protected:
 
 	void LogScenarioAAutoBaselineSnapshot();
 
+	void RequestScenarioAAutoExit();
+
 	FTimerHandle ScenarioAAutoSnapshotTimerHandle;
 
+	FTimerHandle ScenarioAAutoExitTimerHandle;
+
 	bool bScenarioAAutoSnapshotLogged = false;
+
+	bool bScenarioAAutoExit = false;
+
+	float ScenarioAAutoExitGraceSeconds = 5.0f;
 
 };

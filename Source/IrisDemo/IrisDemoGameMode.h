@@ -77,6 +77,8 @@ private:
 
 	void LogScenarioANetworkMetricsSnapshot() const;
 
+	void RequestScenarioAAutoExit();
+
 	int32 NextScenarioARoleIndex = 0;
 
 	int32 NextScenarioAFieldAgentZoneId = 0;
@@ -107,6 +109,10 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	bool bScenarioAEnableRoleFiltering = false;
+
+	bool bScenarioAAutoExit = false;
+
+	float ScenarioAAutoExitGraceSeconds = 5.0f;
 
 	FString ScenarioARunId;
 
@@ -152,6 +158,8 @@ private:
 	FTimerHandle ScenarioANetworkMetricsTimerHandle;
 
 	FTimerHandle ScenarioANetworkMetricsStopTimerHandle;
+
+	FTimerHandle ScenarioAAutoExitTimerHandle;
 
 	double ScenarioANetworkMetricsWindowStartTime = 0.0;
 };
