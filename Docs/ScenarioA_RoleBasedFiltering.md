@@ -458,6 +458,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 - [x] 120 actor heavy 조건에서 Generic/Iris bandwidth 비교 표 작성
 - [x] 무효 run 원인 분석과 유효 run 판정 기준을 `DebuggingNotes.md`에 기록
 - [x] Unreal Insights / CSV / NetTrace 중 최소 1개 수집 경로 작성
+- [x] Unreal Insights trace run 1쌍 실행 및 `server_trace.utrace` 확인
 - [ ] Commander bandwidth 감소 원인을 반복 run 또는 NetTrace/CSV profiling으로 추가 확인
 
 완료 기준:
@@ -514,7 +515,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 가장 작은 다음 커밋 후보:
 
 1. A7 마무리 문서화: 구현 class 목록, 실행 방법, UE 5.7.1 Iris 제약/주의점, 다음 시나리오 TODO를 정리
-2. Unreal Insights trace run을 Generic/Iris 1쌍으로 실행하고 `server_trace.utrace`를 확인
+2. trace run의 client snapshot이 `Standalone/Commander`로 기록된 원인 확인
 3. Scenario C UObject/subobject replication 최소 구현 착수
 4. 역할 변경 console command와 filter membership 갱신 검증 추가
 5. actor despawn 시 filter membership 정리와 Spectator summary update cadence 지연 처리

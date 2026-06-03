@@ -115,3 +115,33 @@ Trace run은 아래 조건을 만족해야 유효하다.
 - `run.json`의 `mode`, `roleFiltering`, `detailActorTotal`, `networkMetricsStartDelay`, `networkMetricsDuration`이 비교 조건과 일치한다.
 
 처음 trace run은 성능 결론을 새로 쓰기 위한 run이 아니라, 기존 3회 heavy 평균에서 남은 원인 분석 질문을 좁히기 위한 run으로 다룬다.
+
+## 7. 2026-06-03 trace run 확인
+
+Unreal Insights trace run 1쌍을 실행하고 `server_trace.utrace`를 열어 Networking Insights의 Packet/Packet Content 화면을 확인했다.
+
+| RunId | Mode | RoleFiltering | Trace file | Trace size | Server metrics | 판정 |
+|-------|------|---------------|------------|------------|----------------|------|
+| `ScenarioA_20260603_134820` | Generic | false | `Saved/ScenarioA/Runs/ScenarioA_20260603_134820/server_trace.utrace` | 6,687,000 bytes | 3 connections, 61 samples | Trace captured |
+| `ScenarioA_20260603_143017` | Iris | true | `Saved/ScenarioA/Runs/ScenarioA_20260603_143017/server_trace.utrace` | 9,560,605 bytes | 3 connections, 61 samples | Trace captured |
+
+서버 metrics 요약:
+
+| RunId | Role/Scope | AvgOutBytesPerSecond | DeltaOutTotalBytes | Samples |
+|-------|------------|----------------------|--------------------|---------|
+| `ScenarioA_20260603_134820` | Commander | 2337.15 | 139811 | 61 |
+| `ScenarioA_20260603_134820` | FieldAgent | 2337.13 | 139810 | 61 |
+| `ScenarioA_20260603_134820` | Spectator | 2338.02 | 139781 | 61 |
+| `ScenarioA_20260603_134820` | NetDriver | n/a | 419402 | 61 |
+| `ScenarioA_20260603_143017` | Commander | 2119.90 | 126928 | 61 |
+| `ScenarioA_20260603_143017` | FieldAgent | 1760.61 | 105518 | 61 |
+| `ScenarioA_20260603_143017` | Spectator | 1578.23 | 94718 | 61 |
+| `ScenarioA_20260603_143017` | NetDriver | n/a | 327164 | 61 |
+
+이번 trace run의 server metrics는 기존 120 actor heavy 3회 측정과 같은 방향이다. Generic은 세 role의 bandwidth가 거의 같고, Iris는 FieldAgent/Spectator의 outgoing bandwidth가 낮다.
+
+주의:
+
+- `client_snapshots.csv`는 두 run 모두 `NetMode=Standalone`, `Role=Commander`로 기록됐다.
+- 서버 metrics에는 `ConnectionCount=3`과 Commander/FieldAgent/Spectator connection row가 모두 있으므로 server-side trace capture 자체는 유효하다.
+- 이번 trace run의 client snapshot은 actor count 판정에는 쓰지 않고, trace capture와 server metrics 확인용으로만 다룬다.

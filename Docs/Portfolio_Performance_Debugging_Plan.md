@@ -140,6 +140,8 @@
 
 2026-06-01 기준 1차 profiling 수집 경로는 `Docs/ProfilingCapturePath.md`에 고정했다. Unreal Insights trace file에 `cpu,frame,bookmark,log,net` channel과 `-NetTrace=1`을 함께 켜는 방식을 선택했고, `Tools\RunLocalBinariesMultiplay.bat --trace-server`가 dedicated server에만 `server_trace.utrace`를 남긴다.
 
+2026-06-03 기준 Unreal Insights trace run 1쌍을 실행했다. `ScenarioA_20260603_134820`은 Generic, `ScenarioA_20260603_143017`은 Iris run이며, 두 run 모두 `Saved/ScenarioA/Runs/<RunId>/server_trace.utrace`를 생성했고 Networking Insights에서 packet content를 확인했다. 서버 metrics는 3 connections, 61 samples 기준으로 기존 heavy 측정과 같은 방향을 보였다. 단, 이번 run의 `client_snapshots.csv`는 `Standalone/Commander`로 기록되어 actor count 검증에는 사용하지 않는다.
+
 ## 6. 면접에서 강조할 이야기
 
 - Iris가 빠르다고 가정하지 않고 Generic과 같은 조건으로 비교했다.
@@ -151,7 +153,7 @@
 
 ## 7. 다음 우선순위
 
-1. Unreal Insights trace run을 Generic/Iris 1쌍으로 실행하고 `server_trace.utrace`를 확인
+1. trace run의 client snapshot이 `Standalone/Commander`로 기록된 원인 확인
 2. replicated object count 또는 relevant object count 기록 경로 확인
 3. Scenario A 마무리 문서화: 실행법, 구현 class 목록, UE 5.7.1 제약, 다음 시나리오 TODO 정리
 4. Scenario C UObject/subobject replication 최소 구현 착수

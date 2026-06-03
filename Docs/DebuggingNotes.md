@@ -222,7 +222,10 @@ Scenario A를 기능 데모가 아니라 포트폴리오용 재현 가능한 샘
    - `Docs/ProfilingCapturePath.md`에 1차 수집 경로를 작성했다.
    - 선택한 방식은 Unreal Insights trace file에 `cpu,frame,bookmark,log,net` channel과 `-NetTrace=1`을 함께 켜는 것이다.
    - `Tools\RunLocalBinariesMultiplay.bat --trace-server`는 dedicated server에만 `server_trace.utrace`를 남긴다.
-   - 아직 Generic/Iris trace run 1쌍 실행과 Unreal Insights 확인은 남아 있다.
+   - 2026-06-03에 `ScenarioA_20260603_134820` Generic run과 `ScenarioA_20260603_143017` Iris run을 실행했고, 두 run 모두 `server_trace.utrace`를 생성했다.
+   - Unreal Insights Networking Insights에서 packet content를 열어 trace data가 들어온 것을 확인했다.
+   - server metrics는 두 run 모두 3 connections, role별 61 samples를 기록했다.
+   - 단, 이번 run의 `client_snapshots.csv`는 `Standalone/Commander`로 기록되어 actor count 검증에는 사용하지 않는다. 이 원인은 별도 확인 항목으로 남긴다.
 
 4. Scenario A 실행법 정리
    - build, server/client 실행, Generic/Iris 비교 명령, 산출물 위치를 한 섹션으로 정리한다.
