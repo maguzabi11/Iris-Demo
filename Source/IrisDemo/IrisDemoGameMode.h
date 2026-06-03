@@ -12,6 +12,7 @@ class ARelaySensorActor;
 class ARelayDroneActor;
 class ARelayOperationalSummaryActor;
 class ARelaySupplyCrateActor;
+class ARelayCargoStationActor;
 
 /**
  *  Simple GameMode for a third person game
@@ -58,6 +59,10 @@ private:
 	void SpawnScenarioAOperationalSummary();
 
 	void UpdateScenarioAOperationalSummary();
+
+	void SpawnScenarioCCargoStations();
+
+	void UpdateScenarioCCargoStations();
 
 	void QueueScenarioAFilterRefresh();
 
@@ -135,6 +140,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	TSubclassOf<ARelayOperationalSummaryActor> ScenarioAOperationalSummaryClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C")
+	bool bScenarioCEnableCargoSubobjects = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C")
+	TSubclassOf<ARelayCargoStationActor> ScenarioCCargoStationClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C", meta = (ClampMin = "0"))
+	int32 ScenarioCCargoStationCount = 1;
+
 	UPROPERTY()
 	TArray<TObjectPtr<ARelaySensorActor>> ScenarioASensors;
 
@@ -146,6 +160,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<ARelayOperationalSummaryActor> ScenarioAOperationalSummary;
+
+	UPROPERTY()
+	TArray<TObjectPtr<ARelayCargoStationActor>> ScenarioCCargoStations;
 
 	FTimerHandle ScenarioASensorUpdateTimerHandle;
 

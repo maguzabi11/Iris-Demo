@@ -210,6 +210,17 @@ AddReplicatedSubObject(ItemInstance);
 RemoveReplicatedSubObject(ItemInstance);
 ```
 
+UE 5.7.1에서 순수 `UObject` subobject를 Iris로 복제할 때는 `RegisterReplicationFragments`에서 property replication fragment를 등록해야 한다. 최소 구현은 다음 형태로 빌드 확인했다.
+
+```cpp
+void URelayCargoItem::RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags)
+{
+    UE::Net::FReplicationFragmentUtil::CreateAndRegisterFragmentsForObject(this, Context, RegistrationFlags);
+}
+```
+
+이 호출을 빠뜨리면 Iris bridge가 `GetLifetimeReplicatedProps`로 복제 property를 찾더라도 등록된 fragment가 없다는 오류를 낼 수 있다.
+
 ### 데모 적용 예
 
 `UIrisItemInstance`:

@@ -516,9 +516,11 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 
 1. A7 마무리 문서화: 구현 class 목록, 실행 방법, UE 5.7.1 Iris 제약/주의점, 다음 시나리오 TODO를 정리
 2. trace run의 client snapshot이 `Standalone/Commander`로 기록된 원인 확인
-3. Scenario C UObject/subobject replication 최소 구현 착수
+3. Scenario C UObject/subobject replication PIE/local binary `OnRep` 검증
 4. 역할 변경 console command와 filter membership 갱신 검증 추가
 5. actor despawn 시 filter membership 정리와 Spectator summary update cadence 지연 처리
 6. `Docs/Iris기본지식.md`에 Scenario A에서 새로 확인한 실행/측정 제약 반영
 
 detail actor category는 Sensor/Drone/Supply까지 채웠고, summary category와 A4 group filtering 결과도 listen server/dedicated server 양쪽 role별 snapshot으로 확인했다. 2026-06-01 기준으로 120 actor heavy 조건의 outgoing bandwidth 감소가 3쌍 측정에서 같은 방향으로 재현됐으므로, Scenario A의 actor filtering/bandwidth 측정은 여기서 마감한다. 다음부터는 UE profiling 산출물 수집 경로를 붙이거나 Scenario C UObject/subobject replication으로 확장한다.
+
+2026-06-03 기준으로 Scenario C 최소 C++ 골격은 [ScenarioC_UObjectSubobjectReplication.md](./ScenarioC_UObjectSubobjectReplication.md)로 분리했다. Scenario A 수치를 오염시키지 않도록 `-ScenarioCEnableCargoSubobjects=1`일 때만 cargo station과 `URelayCargoItem` subobject를 spawn한다.

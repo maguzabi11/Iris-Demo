@@ -24,6 +24,7 @@
 #include "ScenarioA/RelayPlayerState.h"
 #include "ScenarioA/RelaySensorActor.h"
 #include "ScenarioA/RelaySupplyCrateActor.h"
+#include "ScenarioC/RelayCargoStationActor.h"
 #include "TimerManager.h"
 
 namespace
@@ -263,6 +264,7 @@ AIrisDemoGameMode::AIrisDemoGameMode()
 	ScenarioADroneClass = ARelayDroneActor::StaticClass();
 	ScenarioASupplyCrateClass = ARelaySupplyCrateActor::StaticClass();
 	ScenarioAOperationalSummaryClass = ARelayOperationalSummaryActor::StaticClass();
+	ScenarioCCargoStationClass = ARelayCargoStationActor::StaticClass();
 }
 
 void AIrisDemoGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -298,6 +300,8 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	EScenarioAOptionSource RoleFilteringRuntimeSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource AutoExitSource = EScenarioAOptionSource::None;
 	EScenarioAOptionSource AutoExitGraceSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource ScenarioCEnableSource = EScenarioAOptionSource::None;
+	EScenarioAOptionSource ScenarioCStationCountSource = EScenarioAOptionSource::None;
 
 	FString RoleFilteringSource = TEXT("Default");
 	if (TryReadScenarioABoolConfig(ScenarioAGameModeConfigSection, ScenarioAEnableRoleFilteringConfigKey, bScenarioAEnableRoleFiltering))
@@ -316,6 +320,8 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsDuration"), ScenarioANetworkMetricsDuration, NetworkMetricsDurationSource);
 	TryReadScenarioABoolOption(Options, TEXT("ScenarioAAutoExit"), bScenarioAAutoExit, AutoExitSource);
 	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAAutoExitGraceSeconds"), ScenarioAAutoExitGraceSeconds, AutoExitGraceSource);
+	TryReadScenarioABoolOption(Options, TEXT("ScenarioCEnableCargoSubobjects"), bScenarioCEnableCargoSubobjects, ScenarioCEnableSource);
+	TryReadScenarioAIntOption(Options, TEXT("ScenarioCCargoStationCount"), ScenarioCCargoStationCount, ScenarioCStationCountSource);
 
 	if (SensorCountSource == EScenarioAOptionSource::None)
 	{
@@ -370,8 +376,9 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	ScenarioANetworkMetricsStartDelay = FMath::Max(0.0f, ScenarioANetworkMetricsStartDelay);
 	ScenarioANetworkMetricsDuration = FMath::Max(0.0f, ScenarioANetworkMetricsDuration);
 	ScenarioAAutoExitGraceSeconds = FMath::Max(0.0f, ScenarioAAutoExitGraceSeconds);
+	ScenarioCCargoStationCount = FMath::Max(0, ScenarioCCargoStationCount);
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RunId=%s RunIdSource=%s RoleFiltering=%s RoleFilteringSource=%s AutoExit=%s AutoExitGrace=%.2f Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s NetworkMetricsInterval:%s NetworkMetricsStartDelay:%s NetworkMetricsDuration:%s AutoExit:%s AutoExitGrace:%s]"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A options applied: UrlOptions=\"%s\" CommandLine=\"%s\" IrisCmdline=%s IrisMode=%s RunId=%s RunIdSource=%s RoleFiltering=%s RoleFilteringSource=%s AutoExit=%s AutoExitGrace=%.2f ScenarioCSubobjects=%s ScenarioCCargoStationCount=%d Sources=[Seed:%s SensorCount:%s DroneCount:%s SupplyCrateCount:%s UpdateInterval:%s RunDuration:%s NetworkMetricsInterval:%s NetworkMetricsStartDelay:%s NetworkMetricsDuration:%s AutoExit:%s AutoExitGrace:%s ScenarioCEnable:%s ScenarioCStationCount:%s]"),
 		*Options,
 		FCommandLine::Get(),
 		*GetIrisReplicationCommandLineOverrideLabel(),
@@ -382,6 +389,8 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		*RoleFilteringSource,
 		bScenarioAAutoExit ? TEXT("Enabled") : TEXT("Disabled"),
 		ScenarioAAutoExitGraceSeconds,
+		bScenarioCEnableCargoSubobjects ? TEXT("Enabled") : TEXT("Disabled"),
+		ScenarioCCargoStationCount,
 		GetScenarioAOptionSourceLabel(SeedSource),
 		GetScenarioAOptionSourceLabel(SensorCountSource),
 		GetScenarioAOptionSourceLabel(DroneCountSource),
@@ -392,7 +401,9 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		GetScenarioAOptionSourceLabel(NetworkMetricsStartDelaySource),
 		GetScenarioAOptionSourceLabel(NetworkMetricsDurationSource),
 		GetScenarioAOptionSourceLabel(AutoExitSource),
-		GetScenarioAOptionSourceLabel(AutoExitGraceSource));
+		GetScenarioAOptionSourceLabel(AutoExitGraceSource),
+		GetScenarioAOptionSourceLabel(ScenarioCEnableSource),
+		GetScenarioAOptionSourceLabel(ScenarioCStationCountSource));
 }
 
 void AIrisDemoGameMode::BeginPlay()
@@ -403,11 +414,12 @@ void AIrisDemoGameMode::BeginPlay()
 	SpawnScenarioADrones();
 	SpawnScenarioASupplyCrates();
 	SpawnScenarioAOperationalSummary();
+	SpawnScenarioCCargoStations();
 	LogScenarioABaselineConfig();
 	WriteScenarioARunMetadata();
 	QueueScenarioAFilterRefresh();
 
-	if ((ScenarioASensors.Num() > 0 || ScenarioADrones.Num() > 0 || ScenarioASupplyCrates.Num() > 0) && ScenarioASensorUpdateInterval > 0.0f)
+	if ((ScenarioASensors.Num() > 0 || ScenarioADrones.Num() > 0 || ScenarioASupplyCrates.Num() > 0 || ScenarioCCargoStations.Num() > 0) && ScenarioASensorUpdateInterval > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(
 			ScenarioASensorUpdateTimerHandle,
@@ -607,6 +619,7 @@ void AIrisDemoGameMode::UpdateScenarioASensors()
 	UpdateScenarioADrones();
 	UpdateScenarioASupplyCrates();
 	UpdateScenarioAOperationalSummary();
+	UpdateScenarioCCargoStations();
 }
 
 void AIrisDemoGameMode::SpawnScenarioADrones()
@@ -834,6 +847,69 @@ void AIrisDemoGameMode::UpdateScenarioAOperationalSummary()
 	}
 
 	ScenarioAOperationalSummary->SetSummaryState(KnownAlertCount, KnownDroneCount, KnownSupplyCount);
+}
+
+void AIrisDemoGameMode::SpawnScenarioCCargoStations()
+{
+	if (!HasAuthority() || !bScenarioCEnableCargoSubobjects || !ScenarioCCargoStationClass || ScenarioCCargoStationCount <= 0)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	ScenarioCCargoStations.Reset();
+
+	for (int32 StationIndex = 0; StationIndex < ScenarioCCargoStationCount; ++StationIndex)
+	{
+		const FVector SpawnLocation(
+			-450.0,
+			1050.0 + static_cast<double>(StationIndex) * 220.0,
+			90.0);
+
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		ARelayCargoStationActor* CargoStation = World->SpawnActor<ARelayCargoStationActor>(
+			ScenarioCCargoStationClass,
+			SpawnLocation,
+			FRotator::ZeroRotator,
+			SpawnParameters);
+
+		if (!CargoStation)
+		{
+			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario C cargo station spawn failed: Index=%d"), StationIndex);
+			continue;
+		}
+
+		CargoStation->ConfigureStation(StationIndex, FName(*FString::Printf(TEXT("CargoStation_%02d"), StationIndex)));
+		ScenarioCCargoStations.Add(CargoStation);
+	}
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario C cargo stations spawned: Count=%d Mode=%s"),
+		ScenarioCCargoStations.Num(),
+		*GetIrisReplicationModeLabel(GetWorld()));
+}
+
+void AIrisDemoGameMode::UpdateScenarioCCargoStations()
+{
+	if (!HasAuthority() || !bScenarioCEnableCargoSubobjects)
+	{
+		return;
+	}
+
+	for (ARelayCargoStationActor* CargoStation : ScenarioCCargoStations)
+	{
+		if (IsValid(CargoStation))
+		{
+			CargoStation->UpdateCargoItem();
+		}
+	}
 }
 
 void AIrisDemoGameMode::QueueScenarioAFilterRefresh()

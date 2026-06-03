@@ -137,6 +137,8 @@
 
 **목적**: Actor가 아닌 순수 `UObject` subobject replication을 실전형으로 보여준다.
 
+상세 구현 계획과 진행 체크리스트는 [ScenarioC_UObjectSubobjectReplication.md](./ScenarioC_UObjectSubobjectReplication.md)에서 관리한다.
+
 **흐름**:
 1. 플레이어 loadout, 드론 모듈, 보급 상자 cargo slot을 `UObject` 기반 item instance로 구현한다.
 2. 아이템은 durability, charge, stack count, owner tag 등 서로 다른 속성을 가진다.
@@ -324,6 +326,6 @@ IrisDemo는 `DefaultEngine.ini`와 로컬 실행 배치 기준으로 Iris를 기
 2. Unreal Insights / CSV Profiling / NetTrace 수집 경로를 정리하고, RunId 폴더의 JSON/CSV 산출물을 확인한 뒤 `PerformanceRuns.md`에 비교 결과와 해석을 수동 기록
 3. `DebuggingNotes.md`에 설정/실행 모드 차이와 실패 로그 분석을 기록
 4. Scenario A의 A7 마무리 문서화 완료
-5. Scenario C의 UObject loadout/cargo를 최소 기능으로 연결
+5. Scenario C의 UObject loadout/cargo를 최소 기능으로 연결하고 `OnRep` 로그를 listen/dedicated server에서 확인
 6. Scenario B의 prioritization/push model을 성능 측정과 연결
 7. Scenario D/E를 통해 seamless travel과 네트워크 fault profile 검증으로 확장
