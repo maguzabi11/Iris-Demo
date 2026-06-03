@@ -63,6 +63,8 @@ protected:
 
 	void LogScenarioAAutoBaselineSnapshot();
 
+	void ScheduleScenarioAAutoExit(float DelaySeconds);
+
 	void RequestScenarioAAutoExit();
 
 	FTimerHandle ScenarioAAutoSnapshotTimerHandle;
@@ -72,6 +74,8 @@ protected:
 	bool bScenarioAAutoSnapshotLogged = false;
 
 	bool bScenarioAAutoExit = false;
+
+	bool bScenarioAAutoExitScheduled = false;
 
 	float ScenarioAAutoExitGraceSeconds = 5.0f;
 

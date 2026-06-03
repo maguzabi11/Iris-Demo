@@ -228,16 +228,7 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 	{
 		if (bScenarioAAutoExit)
 		{
-			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A client auto exit requested but auto snapshot is disabled: Grace=%.2f Controller=%s"),
-				ScenarioAAutoExitGraceSeconds,
-				*GetName());
-
-			World->GetTimerManager().SetTimer(
-				ScenarioAAutoExitTimerHandle,
-				this,
-				&AIrisDemoPlayerController::RequestScenarioAAutoExit,
-				ScenarioAAutoExitGraceSeconds,
-				false);
+			ScheduleScenarioAAutoExit(ScenarioAAutoExitGraceSeconds);
 		}
 		return;
 	}
@@ -254,6 +245,11 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 		bScenarioAAutoExit ? TEXT("Enabled") : TEXT("Disabled"),
 		ScenarioAAutoExitGraceSeconds,
 		*GetName());
+
+	if (bScenarioAAutoExit)
+	{
+		ScheduleScenarioAAutoExit(AutoSnapshotDelay + ScenarioAAutoExitGraceSeconds);
+	}
 }
 
 void AIrisDemoPlayerController::LogScenarioAAutoBaselineSnapshot()
@@ -266,28 +262,43 @@ void AIrisDemoPlayerController::LogScenarioAAutoBaselineSnapshot()
 	bScenarioAAutoSnapshotLogged = true;
 	LogScenarioABaselineSnapshot(TEXT("Auto"));
 
-	if (bScenarioAAutoExit)
+	if (bScenarioAAutoExit && !bScenarioAAutoExitScheduled)
 	{
-		UWorld* World = GetWorld();
-		if (World)
-		{
-			World->GetTimerManager().SetTimer(
-				ScenarioAAutoExitTimerHandle,
-				this,
-				&AIrisDemoPlayerController::RequestScenarioAAutoExit,
-				ScenarioAAutoExitGraceSeconds,
-				false);
-
-			UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client auto exit scheduled: Delay=%.2f Controller=%s"),
-				ScenarioAAutoExitGraceSeconds,
-				*GetName());
-		}
+		ScheduleScenarioAAutoExit(ScenarioAAutoExitGraceSeconds);
 	}
+}
+
+void AIrisDemoPlayerController::ScheduleScenarioAAutoExit(float DelaySeconds)
+{
+	if (bScenarioAAutoExitScheduled)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	bScenarioAAutoExitScheduled = true;
+	const float ClampedDelaySeconds = FMath::Max(0.0f, DelaySeconds);
+	World->GetTimerManager().SetTimer(
+		ScenarioAAutoExitTimerHandle,
+		this,
+		&AIrisDemoPlayerController::RequestScenarioAAutoExit,
+		ClampedDelaySeconds,
+		false);
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client auto exit scheduled: Delay=%.2f Controller=%s"),
+		ClampedDelaySeconds,
+		*GetName());
 }
 
 void AIrisDemoPlayerController::RequestScenarioAAutoExit()
 {
 	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client auto exit requested: Controller=%s"), *GetName());
+	ConsoleCommand(TEXT("quit"), true);
 	FPlatformMisc::RequestExit(false);
 }
 
