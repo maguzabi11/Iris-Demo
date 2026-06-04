@@ -45,12 +45,27 @@ void ARelayPlayerState::SetAssignedZoneId(int32 NewAssignedZoneId)
 		AssignedZoneId);
 }
 
+void ARelayPlayerState::SetScenarioARunId(const FString& NewRunId)
+{
+	if (!HasAuthority() || ScenarioARunId == NewRunId)
+	{
+		return;
+	}
+
+	ScenarioARunId = NewRunId;
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A run id assigned: PlayerState=%s RunId=%s"),
+		*GetName(),
+		*ScenarioARunId);
+}
+
 void ARelayPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ARelayPlayerState, OperatorRole);
 	DOREPLIFETIME(ARelayPlayerState, AssignedZoneId);
+	DOREPLIFETIME(ARelayPlayerState, ScenarioARunId);
 }
 
 void ARelayPlayerState::OnRep_OperatorRole()
@@ -66,4 +81,11 @@ void ARelayPlayerState::OnRep_AssignedZoneId()
 		*GetName(),
 		*GetOperatorRoleName(),
 		AssignedZoneId);
+}
+
+void ARelayPlayerState::OnRep_ScenarioARunId()
+{
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A run id replicated: PlayerState=%s RunId=%s"),
+		*GetName(),
+		*ScenarioARunId);
 }

@@ -418,7 +418,9 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 		CargoStats.StationLastSequence,
 		CargoStats.CargoItemLastSequence);
 
-	const FString RunId = GetScenarioARunId();
+	const FString RunId = RelayPlayerState && !RelayPlayerState->GetScenarioARunId().IsEmpty()
+		? MakeScenarioARunId(RelayPlayerState->GetScenarioARunId())
+		: GetScenarioARunId();
 	const FString RunDirectory = GetScenarioARunDirectory(RunId);
 	IFileManager::Get().MakeDirectory(*RunDirectory, true);
 

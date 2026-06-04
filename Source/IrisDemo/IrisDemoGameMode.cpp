@@ -514,6 +514,7 @@ void AIrisDemoGameMode::PostLogin(APlayerController* NewPlayer)
 
 	if (ARelayPlayerState* RelayPlayerState = NewPlayer->GetPlayerState<ARelayPlayerState>())
 	{
+		RelayPlayerState->SetScenarioARunId(MakeScenarioARunId(ScenarioARunId));
 		const ERelayOperatorRole AssignedRole = GetNextScenarioARole();
 		RelayPlayerState->SetOperatorRole(AssignedRole);
 		RelayPlayerState->SetAssignedZoneId(GetScenarioAZoneForRole(AssignedRole));

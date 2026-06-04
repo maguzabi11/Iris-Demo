@@ -53,6 +53,12 @@ Scenario A의 core 기능은 동작한다.
 - RunId 이름이나 실행 의도를 믿지 않는다.
 - 비교 실험은 항상 원본 산출물의 실제 조건으로 판정한다.
 
+### 2026-06-04 PIE 자동 RunId 재사용
+
+- 에디터 프로세스를 끄지 않고 PIE를 반복 실행하면 기존 `GetScenarioARunId()`의 static cache 때문에 자동 생성 RunId가 재사용될 수 있었다.
+- 그 결과 새 PIE 실행의 서버 `run.json`이 이전 실행과 같은 `Saved/ScenarioA/Runs/<RunId>/run.json`을 덮어쓸 수 있었다.
+- 수정 후 자동 RunId는 매 호출 시 새로 생성하며, 서버가 선택한 RunId는 `ARelayPlayerState`로 복제한다. client snapshot은 복제된 RunId를 우선 사용하므로 같은 PIE 실행의 산출물은 묶이고, 다음 PIE 실행은 새 RunId 폴더를 쓴다.
+
 ## 3. Generic/Iris 실행 모드 확인 이슈
 
 IrisDemo의 기본 replication mode는 Iris다. Generic은 기본값이 아니라 비교용 control run이다.

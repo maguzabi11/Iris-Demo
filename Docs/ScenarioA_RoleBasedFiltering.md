@@ -329,6 +329,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 각 local client는 `-ScenarioAAutoSnapshotDelay=<seconds>`가 0보다 크면 같은 RunId의 `client_snapshots.csv`에 `Source=Auto` row를 한 번 append한다. `IrisRelayLogBaselineSnapshot`을 수동 실행하면 같은 파일에 `Source=Console` row를 추가 append한다.
 - `RunId`는 `-ScenarioARunId=<id>`로 넘기며, `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 기본적으로 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 모든 client에 공통 전달한다.
 - 수동으로 고정하려면 배치 실행 시 `--run-id ScenarioA_manual_001`처럼 넘긴다.
+- 에디터 PIE에서 `ScenarioARunId`를 명시하지 않으면 매 PIE 실행마다 밀리초 단위의 새 RunId를 생성한다. 서버는 이 RunId를 `ARelayPlayerState`로 복제하고, client snapshot은 복제된 RunId를 우선 사용한다. 따라서 에디터를 계속 켜둔 채 반복 실행해도 이전 `run.json`을 같은 자동 RunId 폴더에 덮어쓰지 않는다.
 - 수집 완료 후 창을 직접 닫지 않으려면 local binary 배치에 `--auto-close`를 붙인다. 이 옵션은 server/client에 `-ScenarioAAutoExit=1 -ScenarioAAutoExitGraceSeconds=5`를 전달한다. 서버는 run duration과 network metrics window가 끝난 뒤 Grace 이후 종료하고, client는 auto snapshot 기록 뒤 Grace 이후 종료한다.
 
 `run.json` 주요 필드:
@@ -382,6 +383,7 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 - 2026-05-22: `Docs/학습/결과임시기록.md`의 local binary snapshot 기준으로 listen server와 dedicated server 모두 Generic baseline에서 Commander/FieldAgent/Spectator가 `DetailActorTotal=12`, `SummaryCount=1`을 수신했다. 각 role의 zone 분포도 `SensorZones=2/2/2`, `DroneZones=1/1/1`, `SupplyCrateZones=1/1/1`로 동일해 A3 control run 기대값과 일치한다.
 - 2026-05-22: `-ScenarioARunId` 기반 run 폴더를 추가했다. 서버는 `run.json`에 실행 조건을 저장하고, `IrisRelayLogBaselineSnapshot`은 `client_snapshots.csv`에 local client 수신 결과를 append한다. `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 같은 RunId를 서버와 client에 공통 전달한다.
 - 2026-05-28: 서버가 `server_network_metrics.csv`에 NetDriver 전체와 connection별 `OutBytesPerSecond`, `OutTotalBytes`를 append하도록 추가했다. 첫 측정값 수집 경로는 engine `UNetDriver`/`UNetConnection` 통계를 사용한다.
+- 2026-06-04: 에디터 PIE 반복 실행에서 자동 생성 RunId가 프로세스 전역 캐시로 재사용되어 `run.json`이 같은 폴더에 덮어써질 수 있던 문제를 수정했다. 자동 RunId는 호출 시 새로 만들고, 서버가 선택한 RunId는 `ARelayPlayerState`로 복제해 client snapshot이 같은 RunId를 사용하도록 했다.
 
 ### A4. Role-Based Filtering 구현
 

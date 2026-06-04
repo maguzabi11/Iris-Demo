@@ -139,23 +139,17 @@ IRISDEMO_API FString MakeScenarioARunId(const FString& RawRunId)
 		return RunId;
 	}
 
+	const FDateTime Now = FDateTime::Now();
 	return FString::Printf(TEXT("ScenarioA_%s_%s"),
-		*FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S")),
+		*FString::Printf(TEXT("%s_%03d"), *Now.ToString(TEXT("%Y%m%d_%H%M%S")), Now.GetMillisecond()),
 		*GetIrisReplicationModeLabel());
 }
 
 IRISDEMO_API FString GetScenarioARunId()
 {
-	static FString CachedRunId;
-	if (!CachedRunId.IsEmpty())
-	{
-		return CachedRunId;
-	}
-
 	FString RawRunId;
 	FParse::Value(FCommandLine::Get(), TEXT("-ScenarioARunId="), RawRunId);
-	CachedRunId = MakeScenarioARunId(RawRunId);
-	return CachedRunId;
+	return MakeScenarioARunId(RawRunId);
 }
 
 IRISDEMO_API FString GetScenarioARunDirectory(const FString& RunId)
