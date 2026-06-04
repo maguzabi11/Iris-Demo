@@ -141,7 +141,7 @@ private:
 	TSubclassOf<ARelayOperationalSummaryActor> ScenarioAOperationalSummaryClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C")
-	bool bScenarioCEnableCargoSubobjects = false;
+	bool bScenarioCEnableCargoSubobjects = true;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C")
 	TSubclassOf<ARelayCargoStationActor> ScenarioCCargoStationClass;
