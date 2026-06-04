@@ -20,6 +20,8 @@
 #include "ScenarioA/RelayPlayerState.h"
 #include "ScenarioA/RelaySensorActor.h"
 #include "ScenarioA/RelaySupplyCrateActor.h"
+#include "ScenarioC/RelayCargoItem.h"
+#include "ScenarioC/RelayCargoStationActor.h"
 #include "TimerManager.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 
@@ -44,6 +46,14 @@ namespace
 	{
 		int32 Total = 0;
 		int32 LastSequence = 0;
+	};
+
+	struct FScenarioCCargoStats
+	{
+		int32 StationTotal = 0;
+		int32 CargoItemTotal = 0;
+		int32 StationLastSequence = 0;
+		int32 CargoItemLastSequence = 0;
 	};
 
 	template <typename TActorType>
@@ -103,6 +113,36 @@ namespace
 		return Stats;
 	}
 
+	FScenarioCCargoStats CollectScenarioCCargoStats(UWorld* World)
+	{
+		FScenarioCCargoStats Stats;
+		if (!World)
+		{
+			return Stats;
+		}
+
+		for (TActorIterator<ARelayCargoStationActor> It(World); It; ++It)
+		{
+			const ARelayCargoStationActor* CargoStation = *It;
+			if (!IsValid(CargoStation))
+			{
+				continue;
+			}
+
+			++Stats.StationTotal;
+			Stats.StationLastSequence = FMath::Max(Stats.StationLastSequence, CargoStation->GetLastUpdateSequence());
+
+			const URelayCargoItem* CargoItem = CargoStation->GetCargoItem();
+			if (IsValid(CargoItem))
+			{
+				++Stats.CargoItemTotal;
+				Stats.CargoItemLastSequence = FMath::Max(Stats.CargoItemLastSequence, CargoItem->GetLastUpdateSequence());
+			}
+		}
+
+		return Stats;
+	}
+
 	FString FormatScenarioAZoneTotals(const FScenarioAClientActorStats& Stats)
 	{
 		return FString::Printf(TEXT("Z0=%d,Z1=%d,Z2=%d,Unknown=%d"),
@@ -127,7 +167,7 @@ namespace
 
 	FString GetScenarioAClientSnapshotCsvHeader()
 	{
-		return TEXT("Timestamp,RunId,Source,Mode,NetMode,Role,Zone,Controller,SensorCount,DroneCount,SupplyCrateCount,SummaryCount,DetailActorTotal,SensorZ0,SensorZ1,SensorZ2,SensorUnknown,DroneZ0,DroneZ1,DroneZ2,DroneUnknown,SupplyCrateZ0,SupplyCrateZ1,SupplyCrateZ2,SupplyCrateUnknown,SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence,DetailMaxSequence");
+		return TEXT("Timestamp,RunId,Source,Mode,NetMode,Role,Zone,Controller,SensorCount,DroneCount,SupplyCrateCount,SummaryCount,DetailActorTotal,SensorZ0,SensorZ1,SensorZ2,SensorUnknown,DroneZ0,DroneZ1,DroneZ2,DroneUnknown,SupplyCrateZ0,SupplyCrateZ1,SupplyCrateZ2,SupplyCrateUnknown,SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence,DetailMaxSequence,CargoStationCount,CargoItemCount,CargoStationLastSequence,CargoItemLastSequence");
 	}
 
 	int32 GetScenarioAZoneTotal(const FScenarioAClientActorStats& Stats, int32 ZoneId)
@@ -346,6 +386,7 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 	const FScenarioAClientActorStats DroneStats = CollectScenarioAClientActorStats<ARelayDroneActor>(World);
 	const FScenarioAClientActorStats SupplyCrateStats = CollectScenarioAClientActorStats<ARelaySupplyCrateActor>(World);
 	const FScenarioASummaryStats SummaryStats = CollectScenarioASummaryStats(World);
+	const FScenarioCCargoStats CargoStats = CollectScenarioCCargoStats(World);
 	const int32 DetailActorTotal = SensorStats.Total + DroneStats.Total + SupplyCrateStats.Total;
 	const int32 DetailLastSequence = FMath::Max3(SensorStats.LastSequence, DroneStats.LastSequence, SupplyCrateStats.LastSequence);
 
@@ -353,7 +394,7 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 	const FString RoleName = RelayPlayerState ? RelayPlayerState->GetOperatorRoleName() : TEXT("Unassigned");
 	const int32 AssignedZoneId = RelayPlayerState ? RelayPlayerState->GetAssignedZoneId() : INDEX_NONE;
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline client snapshot: Source=%s Mode=%s Role=%s Zone=%d Controller=%s SensorCount=%d DroneCount=%d SupplyCrateCount=%d SummaryCount=%d DetailActorTotal=%d SensorZones=[%s] DroneZones=[%s] SupplyCrateZones=[%s] LastSequences=[Sensor:%d Drone:%d SupplyCrate:%d Summary:%d DetailMax:%d]"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A baseline client snapshot: Source=%s Mode=%s Role=%s Zone=%d Controller=%s SensorCount=%d DroneCount=%d SupplyCrateCount=%d SummaryCount=%d DetailActorTotal=%d SensorZones=[%s] DroneZones=[%s] SupplyCrateZones=[%s] LastSequences=[Sensor:%d Drone:%d SupplyCrate:%d Summary:%d DetailMax:%d] ScenarioC=[CargoStationCount:%d CargoItemCount:%d StationLastSequence:%d ItemLastSequence:%d]"),
 		Source ? Source : TEXT("Unknown"),
 		*GetIrisReplicationModeLabel(World),
 		*RoleName,
@@ -371,7 +412,11 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 		DroneStats.LastSequence,
 		SupplyCrateStats.LastSequence,
 		SummaryStats.LastSequence,
-		DetailLastSequence);
+		DetailLastSequence,
+		CargoStats.StationTotal,
+		CargoStats.CargoItemTotal,
+		CargoStats.StationLastSequence,
+		CargoStats.CargoItemLastSequence);
 
 	const FString RunId = GetScenarioARunId();
 	const FString RunDirectory = GetScenarioARunDirectory(RunId);
@@ -379,7 +424,7 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 
 	const FString SnapshotCsvPath = FPaths::Combine(RunDirectory, TEXT("client_snapshots.csv"));
 	const bool bWriteHeader = !IFileManager::Get().FileExists(*SnapshotCsvPath);
-	const FString CsvRow = FString::Printf(TEXT("%s,%s,%s,%s,%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s"),
+	const FString CsvRow = FString::Printf(TEXT("%s,%s,%s,%s,%s,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s"),
 		*FormatScenarioACsvCell(FDateTime::Now().ToIso8601()),
 		*FormatScenarioACsvCell(RunId),
 		*FormatScenarioACsvCell(Source ? Source : TEXT("Unknown")),
@@ -410,6 +455,10 @@ void AIrisDemoPlayerController::LogScenarioABaselineSnapshot(const TCHAR* Source
 		SupplyCrateStats.LastSequence,
 		SummaryStats.LastSequence,
 		DetailLastSequence,
+		CargoStats.StationTotal,
+		CargoStats.CargoItemTotal,
+		CargoStats.StationLastSequence,
+		CargoStats.CargoItemLastSequence,
 		LINE_TERMINATOR);
 
 	const FString CsvText = bWriteHeader
