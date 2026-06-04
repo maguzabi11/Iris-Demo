@@ -249,7 +249,7 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 		return;
 	}
 
-	float AutoSnapshotDelay = 95.0f;
+	float AutoSnapshotDelay = 61.0f;
 	FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoSnapshotDelay="), AutoSnapshotDelay);
 	FParse::Value(FCommandLine::Get(), TEXT("-ScenarioAAutoExitGraceSeconds="), ScenarioAAutoExitGraceSeconds);
 	ScenarioAAutoExitGraceSeconds = FMath::Max(0.0f, ScenarioAAutoExitGraceSeconds);
