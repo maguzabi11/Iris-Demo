@@ -63,7 +63,7 @@ protected:
 
 	void LogScenarioAAutoBaselineSnapshot();
 
-	void ScheduleScenarioAAutoExit(float DelaySeconds);
+	void ScheduleScenarioAAutoExit(float DelaySeconds, const TCHAR* Caller = TEXT("Auto"));
 
 	void RequestScenarioAAutoExit();
 

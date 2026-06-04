@@ -228,7 +228,7 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 	{
 		if (bScenarioAAutoExit)
 		{
-			ScheduleScenarioAAutoExit(ScenarioAAutoExitGraceSeconds);
+			ScheduleScenarioAAutoExit(ScenarioAAutoExitGraceSeconds, TEXT("ScheduleScenarioAAutoBaselineSnapshot: AutoSnapshotDelay<=0.0f"));
 		}
 		return;
 	}
@@ -248,7 +248,7 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoBaselineSnapshot()
 
 	if (bScenarioAAutoExit)
 	{
-		ScheduleScenarioAAutoExit(AutoSnapshotDelay + ScenarioAAutoExitGraceSeconds);
+		ScheduleScenarioAAutoExit(AutoSnapshotDelay + ScenarioAAutoExitGraceSeconds, TEXT("ScheduleScenarioAAutoBaselineSnapshot"));
 	}
 }
 
@@ -264,11 +264,11 @@ void AIrisDemoPlayerController::LogScenarioAAutoBaselineSnapshot()
 
 	if (bScenarioAAutoExit && !bScenarioAAutoExitScheduled)
 	{
-		ScheduleScenarioAAutoExit(ScenarioAAutoExitGraceSeconds);
+		ScheduleScenarioAAutoExit(ScenarioAAutoExitGraceSeconds, TEXT("LogScenarioAAutoBaselineSnapshot"));
 	}
 }
 
-void AIrisDemoPlayerController::ScheduleScenarioAAutoExit(float DelaySeconds)
+void AIrisDemoPlayerController::ScheduleScenarioAAutoExit(float DelaySeconds, const TCHAR* Caller)
 {
 	if (bScenarioAAutoExitScheduled)
 	{
@@ -290,9 +290,10 @@ void AIrisDemoPlayerController::ScheduleScenarioAAutoExit(float DelaySeconds)
 		ClampedDelaySeconds,
 		false);
 
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client auto exit scheduled: Delay=%.2f Controller=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A client auto exit scheduled: Delay=%.2f Controller=%s Caller=%s"),
 		ClampedDelaySeconds,
-		*GetName());
+		*GetName(),
+		Caller);
 }
 
 void AIrisDemoPlayerController::RequestScenarioAAutoExit()
