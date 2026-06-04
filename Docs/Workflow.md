@@ -51,7 +51,7 @@ Tools\RunLocalMultiplay.bat [--iris|--no-iris] [추가인자]
 
 프로젝트 기본 설정은 `Config/DefaultEngine.ini`의 `net.Iris.UseIrisReplication=1`이다. 로컬 실행 배치도 기본 mode option을 `--iris`로 두고 Iris 복제를 명시 활성화하며 (`-UseIrisReplication=1`), `--no-iris` 옵션을 제공하면 비교용 Generic replication run으로 전환한다 (`-UseIrisReplication=0`). 배치는 mode에 따라 role filtering 기본값도 같이 고정한다. `--iris`는 `-ScenarioAEnableRoleFiltering=1`, `--no-iris`는 `-ScenarioAEnableRoleFiltering=0`을 자동 전달한다.
 
-Scenario A의 코드 기본값은 성능 비교용 조건이다. 별도 actor count/window 옵션을 붙이지 않아도 detail actor 120개(sensor 60, drone 30, supply crate 30), `ScenarioANetworkMetricsStartDelay=35`, `ScenarioANetworkMetricsDuration=60`, `ScenarioAAutoSnapshotDelay=95` 기준으로 기록된다.
+Scenario A의 코드 기본값은 성능 비교용 조건이다. 별도 actor count/window 옵션을 붙이지 않아도 detail actor 120개(sensor 60, drone 30, supply crate 30), `ScenarioANetworkMetricsDuration=60`, `ScenarioAAutoSnapshotDelay=95` 기준으로 기록된다. `ScenarioANetworkMetricsStartDelay`는 dedicated/local binary 성능 비교 run에서는 기본 35초이고, PIE에서는 빠른 확인을 위해 기본 5초다. 명시적으로 `-ScenarioANetworkMetricsStartDelay=<seconds>` 또는 PIE URL option을 넘기면 그 값이 항상 우선한다.
 
 빌드된 `Binaries\Win64\IrisDemoServer.exe`와 `Binaries\Win64\IrisDemoClient.exe`로 같은 구성을 실행하려면 다음 배치를 사용한다.
 
@@ -95,4 +95,4 @@ Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_IrisHeavy_001
 
 Generic/Iris 비교는 같은 조건에서 `-UseIrisReplication=0`, `-UseIrisReplication=1`만 바꾼다. 이 프로젝트의 자연스러운 기본 run은 Iris이며, Generic은 기존 replication path와 비교하기 위해 명시적으로 끄는 control run이다. 각 local client는 기본 95초 뒤 snapshot CSV를 자동 기록한다. 필요할 때는 console에서 `IrisRelayLogBaselineSnapshot`을 실행해 수동 snapshot도 추가로 남길 수 있다.
 
-서버는 같은 RunId 폴더에 `server_network_metrics.csv`를 생성하고, `ScenarioANetworkMetricsInterval` 기본값 기준으로 NetDriver 전체 및 client connection별 outgoing bandwidth를 append한다. `ScenarioANetworkMetricsStartDelay`가 0보다 크면 해당 지연 이후 기록을 시작하고, `ScenarioANetworkMetricsDuration`이 0보다 크면 지정된 시간 뒤 기록을 멈춘다.
+서버는 같은 RunId 폴더에 `server_network_metrics.csv`를 생성하고, `ScenarioANetworkMetricsInterval` 기본값 기준으로 NetDriver 전체 및 client connection별 outgoing bandwidth를 append한다. `ScenarioANetworkMetricsStartDelay`가 0보다 크면 해당 지연 이후 기록을 시작하고, `ScenarioANetworkMetricsDuration`이 0보다 크면 지정된 시간 뒤 기록을 멈춘다. 35초 지연은 초기 접속, role assignment, 첫 복제 burst를 성능 비교 window에서 빼기 위한 보수값이며, PIE의 빠른 smoke check에는 기본 5초 지연을 사용한다.

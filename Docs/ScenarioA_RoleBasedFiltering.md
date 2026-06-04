@@ -305,7 +305,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 - 기본 인원: 2 clients에서는 Commander/FieldAgent만 기록하고, Spectator 비교는 3 clients에서 기록한다.
 - 기본 actor count: sensor 60, drone 30, supply crate 30, detail actor total 120.
 - 기본 seed/duration: `ScenarioASeed=1001`, `ScenarioARunDuration=95`, `ScenarioAUpdateInterval=2`.
-- 기본 bandwidth 측정 window: `ScenarioANetworkMetricsStartDelay=35`, `ScenarioANetworkMetricsDuration=60`, `ScenarioANetworkMetricsInterval=1`.
+- 기본 bandwidth 측정 window: dedicated/local binary 성능 비교 run은 `ScenarioANetworkMetricsStartDelay=35`, `ScenarioANetworkMetricsDuration=60`, `ScenarioANetworkMetricsInterval=1`을 사용한다. PIE에서 값을 명시하지 않으면 빠른 확인을 위해 `ScenarioANetworkMetricsStartDelay=5`가 기본 적용된다.
 - A4 이전 기대값: Commander/FieldAgent/Spectator 모두 `DetailActorTotal=120`이 기준이다. 역할별 차이가 이미 난다면 filtering 결과가 아니라 baseline 복제 조건 문제로 본다.
 
 실행 인자:
@@ -325,7 +325,7 @@ A3는 A4의 role-based filtering을 넣기 전 control run이다. 이 단계의 
 자동 파일 기록:
 
 - 서버 `GameMode`는 BeginPlay 이후 `Saved/ScenarioA/Runs/<RunId>/run.json`을 저장한다.
-- 서버 `GameMode`는 `ScenarioANetworkMetricsInterval`이 0보다 크면 같은 RunId의 `server_network_metrics.csv`에 NetDriver 전체 및 connection별 outgoing bandwidth row를 주기적으로 append한다. `ScenarioANetworkMetricsStartDelay`가 0보다 크면 지정된 지연 후 측정을 시작하고, `ScenarioANetworkMetricsDuration`이 0보다 크면 해당 길이만큼만 기록한다.
+- 서버 `GameMode`는 `ScenarioANetworkMetricsInterval`이 0보다 크면 같은 RunId의 `server_network_metrics.csv`에 NetDriver 전체 및 connection별 outgoing bandwidth row를 주기적으로 append한다. `ScenarioANetworkMetricsStartDelay`가 0보다 크면 지정된 지연 후 측정을 시작하고, `ScenarioANetworkMetricsDuration`이 0보다 크면 해당 길이만큼만 기록한다. 명시 옵션이 없을 때 PIE는 기본 5초, dedicated/local binary는 초기 접속과 첫 복제 burst를 제외하기 위해 기본 35초를 쓴다.
 - 각 local client는 `-ScenarioAAutoSnapshotDelay=<seconds>`가 0보다 크면 같은 RunId의 `client_snapshots.csv`에 `Source=Auto` row를 한 번 append한다. `IrisRelayLogBaselineSnapshot`을 수동 실행하면 같은 파일에 `Source=Console` row를 추가 append한다.
 - `RunId`는 `-ScenarioARunId=<id>`로 넘기며, `Tools/RunLocalMultiplay.bat`와 `Tools/RunLocalBinariesMultiplay.bat`는 기본적으로 `ScenarioA_yyyyMMdd_HHmmss` 형식의 RunId를 서버와 모든 client에 공통 전달한다.
 - 수동으로 고정하려면 배치 실행 시 `--run-id ScenarioA_manual_001`처럼 넘긴다.

@@ -4,6 +4,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "Engine/NetDriver.h"
+#include "Engine/World.h"
 #include "Iris/ReplicationSystem/Filtering/NetObjectFilter.h"
 #include "Iris/ReplicationSystem/NetObjectGroupHandle.h"
 #include "Iris/ReplicationSystem/ObjectReplicationBridge.h"
@@ -35,6 +36,7 @@ constexpr int32 ScenarioADefaultDroneCount = 30;
 constexpr int32 ScenarioADefaultSupplyCrateCount = 30;
 constexpr float ScenarioADefaultRunDuration = 95.0f;
 constexpr float ScenarioADefaultNetworkMetricsStartDelay = 35.0f;
+constexpr float ScenarioAPieNetworkMetricsStartDelay = 5.0f;
 constexpr float ScenarioADefaultNetworkMetricsDuration = 60.0f;
 const TCHAR* ScenarioAGameModeConfigSection = TEXT("/Script/IrisDemo.IrisDemoGameMode");
 const TCHAR* ScenarioAEnableRoleFilteringConfigKey = TEXT("bScenarioAEnableRoleFiltering");
@@ -341,7 +343,10 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 	}
 	if (NetworkMetricsStartDelaySource == EScenarioOptionSource::None)
 	{
-		ScenarioANetworkMetricsStartDelay = ScenarioADefaultNetworkMetricsStartDelay;
+		const UWorld* World = GetWorld();
+		ScenarioANetworkMetricsStartDelay = World && World->WorldType == EWorldType::PIE
+			? ScenarioAPieNetworkMetricsStartDelay
+			: ScenarioADefaultNetworkMetricsStartDelay;
 	}
 	if (NetworkMetricsDurationSource == EScenarioOptionSource::None)
 	{
