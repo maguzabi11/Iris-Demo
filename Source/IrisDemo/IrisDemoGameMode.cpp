@@ -39,28 +39,28 @@ constexpr float ScenarioADefaultNetworkMetricsDuration = 60.0f;
 const TCHAR* ScenarioAGameModeConfigSection = TEXT("/Script/IrisDemo.IrisDemoGameMode");
 const TCHAR* ScenarioAEnableRoleFilteringConfigKey = TEXT("bScenarioAEnableRoleFiltering");
 
-enum class EScenarioAOptionSource : uint8
+enum class EScenarioOptionSource : uint8
 {
 	None,
 	UrlOptions,
 	CommandLine
 };
 
-const TCHAR* GetScenarioAOptionSourceLabel(EScenarioAOptionSource Source)
+const TCHAR* GetScenarioOptionSourceLabel(EScenarioOptionSource Source)
 {
 	switch (Source)
 	{
-	case EScenarioAOptionSource::UrlOptions:
+	case EScenarioOptionSource::UrlOptions:
 		return TEXT("UrlOptions");
-	case EScenarioAOptionSource::CommandLine:
+	case EScenarioOptionSource::CommandLine:
 		return TEXT("CommandLine");
-	case EScenarioAOptionSource::None:
+	case EScenarioOptionSource::None:
 	default:
 		return TEXT("Default");
 	}
 }
 
-bool TryReadScenarioAUrlOption(const FString& Options, const TCHAR* OptionName, FString& OutValue)
+bool TryReadScenarioUrlOption(const FString& Options, const TCHAR* OptionName, FString& OutValue)
 {
 	const FString OptionKey(OptionName);
 	TArray<FString> OptionTokens;
@@ -80,29 +80,29 @@ bool TryReadScenarioAUrlOption(const FString& Options, const TCHAR* OptionName, 
 	return false;
 }
 
-bool TryReadScenarioAOptionValue(const FString& Options, const TCHAR* OptionName, FString& OutValue, EScenarioAOptionSource& OutSource)
+bool TryReadScenarioOptionValue(const FString& Options, const TCHAR* OptionName, FString& OutValue, EScenarioOptionSource& OutSource)
 {
-	if (TryReadScenarioAUrlOption(Options, OptionName, OutValue))
+	if (TryReadScenarioUrlOption(Options, OptionName, OutValue))
 	{
-		OutSource = EScenarioAOptionSource::UrlOptions;
+		OutSource = EScenarioOptionSource::UrlOptions;
 		return true;
 	}
 
 	const FString CommandLineOption = FString::Printf(TEXT("-%s="), OptionName);
 	if (FParse::Value(FCommandLine::Get(), *CommandLineOption, OutValue))
 	{
-		OutSource = EScenarioAOptionSource::CommandLine;
+		OutSource = EScenarioOptionSource::CommandLine;
 		return true;
 	}
 
-	OutSource = EScenarioAOptionSource::None;
+	OutSource = EScenarioOptionSource::None;
 	return false;
 }
 
-bool TryReadScenarioAIntOption(const FString& Options, const TCHAR* OptionName, int32& OutValue, EScenarioAOptionSource& OutSource)
+bool TryReadScenarioIntOption(const FString& Options, const TCHAR* OptionName, int32& OutValue, EScenarioOptionSource& OutSource)
 {
 	FString RawValue;
-	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue, OutSource))
+	if (!TryReadScenarioOptionValue(Options, OptionName, RawValue, OutSource))
 	{
 		return false;
 	}
@@ -111,10 +111,10 @@ bool TryReadScenarioAIntOption(const FString& Options, const TCHAR* OptionName, 
 	return true;
 }
 
-bool TryReadScenarioAFloatOption(const FString& Options, const TCHAR* OptionName, float& OutValue, EScenarioAOptionSource& OutSource)
+bool TryReadScenarioFloatOption(const FString& Options, const TCHAR* OptionName, float& OutValue, EScenarioOptionSource& OutSource)
 {
 	FString RawValue;
-	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue, OutSource))
+	if (!TryReadScenarioOptionValue(Options, OptionName, RawValue, OutSource))
 	{
 		return false;
 	}
@@ -123,10 +123,10 @@ bool TryReadScenarioAFloatOption(const FString& Options, const TCHAR* OptionName
 	return true;
 }
 
-bool TryReadScenarioABoolOption(const FString& Options, const TCHAR* OptionName, bool& OutValue, EScenarioAOptionSource& OutSource)
+bool TryReadScenarioBoolOption(const FString& Options, const TCHAR* OptionName, bool& OutValue, EScenarioOptionSource& OutSource)
 {
 	FString RawValue;
-	if (!TryReadScenarioAOptionValue(Options, OptionName, RawValue, OutSource))
+	if (!TryReadScenarioOptionValue(Options, OptionName, RawValue, OutSource))
 	{
 		return false;
 	}
@@ -287,21 +287,21 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 {
 	ApplyIrisReplicationCommandLineOverride();
 
-	EScenarioAOptionSource SeedSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource SensorCountSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource DroneCountSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource SupplyCrateCountSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource UpdateIntervalSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource RunDurationSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource NetworkMetricsIntervalSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource NetworkMetricsStartDelaySource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource NetworkMetricsDurationSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource RunIdSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource RoleFilteringRuntimeSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource AutoExitSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource AutoExitGraceSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource ScenarioCEnableSource = EScenarioAOptionSource::None;
-	EScenarioAOptionSource ScenarioCStationCountSource = EScenarioAOptionSource::None;
+	EScenarioOptionSource SeedSource = EScenarioOptionSource::None;
+	EScenarioOptionSource SensorCountSource = EScenarioOptionSource::None;
+	EScenarioOptionSource DroneCountSource = EScenarioOptionSource::None;
+	EScenarioOptionSource SupplyCrateCountSource = EScenarioOptionSource::None;
+	EScenarioOptionSource UpdateIntervalSource = EScenarioOptionSource::None;
+	EScenarioOptionSource RunDurationSource = EScenarioOptionSource::None;
+	EScenarioOptionSource NetworkMetricsIntervalSource = EScenarioOptionSource::None;
+	EScenarioOptionSource NetworkMetricsStartDelaySource = EScenarioOptionSource::None;
+	EScenarioOptionSource NetworkMetricsDurationSource = EScenarioOptionSource::None;
+	EScenarioOptionSource RunIdSource = EScenarioOptionSource::None;
+	EScenarioOptionSource RoleFilteringRuntimeSource = EScenarioOptionSource::None;
+	EScenarioOptionSource AutoExitSource = EScenarioOptionSource::None;
+	EScenarioOptionSource AutoExitGraceSource = EScenarioOptionSource::None;
+	EScenarioOptionSource ScenarioCEnableSource = EScenarioOptionSource::None;
+	EScenarioOptionSource ScenarioCStationCountSource = EScenarioOptionSource::None;
 
 	FString RoleFilteringSource = TEXT("Default");
 	if (TryReadScenarioABoolConfig(ScenarioAGameModeConfigSection, ScenarioAEnableRoleFilteringConfigKey, bScenarioAEnableRoleFiltering))
@@ -309,50 +309,50 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		RoleFilteringSource = TEXT("DefaultGame.ini");
 	}
 
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASeed"), ScenarioASeed, SeedSource);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASensorCount"), ScenarioASensorCount, SensorCountSource);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioADroneCount"), ScenarioADroneCount, DroneCountSource);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount, SupplyCrateCountSource);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval, UpdateIntervalSource);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration, RunDurationSource);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsInterval"), ScenarioANetworkMetricsInterval, NetworkMetricsIntervalSource);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsStartDelay"), ScenarioANetworkMetricsStartDelay, NetworkMetricsStartDelaySource);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioANetworkMetricsDuration"), ScenarioANetworkMetricsDuration, NetworkMetricsDurationSource);
-	TryReadScenarioABoolOption(Options, TEXT("ScenarioAAutoExit"), bScenarioAAutoExit, AutoExitSource);
-	TryReadScenarioAFloatOption(Options, TEXT("ScenarioAAutoExitGraceSeconds"), ScenarioAAutoExitGraceSeconds, AutoExitGraceSource);
-	TryReadScenarioABoolOption(Options, TEXT("ScenarioCEnableCargoSubobjects"), bScenarioCEnableCargoSubobjects, ScenarioCEnableSource);
-	TryReadScenarioAIntOption(Options, TEXT("ScenarioCCargoStationCount"), ScenarioCCargoStationCount, ScenarioCStationCountSource);
+	TryReadScenarioIntOption(Options, TEXT("ScenarioASeed"), ScenarioASeed, SeedSource);
+	TryReadScenarioIntOption(Options, TEXT("ScenarioASensorCount"), ScenarioASensorCount, SensorCountSource);
+	TryReadScenarioIntOption(Options, TEXT("ScenarioADroneCount"), ScenarioADroneCount, DroneCountSource);
+	TryReadScenarioIntOption(Options, TEXT("ScenarioASupplyCrateCount"), ScenarioASupplyCrateCount, SupplyCrateCountSource);
+	TryReadScenarioFloatOption(Options, TEXT("ScenarioAUpdateInterval"), ScenarioASensorUpdateInterval, UpdateIntervalSource);
+	TryReadScenarioFloatOption(Options, TEXT("ScenarioARunDuration"), ScenarioARunDuration, RunDurationSource);
+	TryReadScenarioFloatOption(Options, TEXT("ScenarioANetworkMetricsInterval"), ScenarioANetworkMetricsInterval, NetworkMetricsIntervalSource);
+	TryReadScenarioFloatOption(Options, TEXT("ScenarioANetworkMetricsStartDelay"), ScenarioANetworkMetricsStartDelay, NetworkMetricsStartDelaySource);
+	TryReadScenarioFloatOption(Options, TEXT("ScenarioANetworkMetricsDuration"), ScenarioANetworkMetricsDuration, NetworkMetricsDurationSource);
+	TryReadScenarioBoolOption(Options, TEXT("ScenarioAAutoExit"), bScenarioAAutoExit, AutoExitSource);
+	TryReadScenarioFloatOption(Options, TEXT("ScenarioAAutoExitGraceSeconds"), ScenarioAAutoExitGraceSeconds, AutoExitGraceSource);
+	TryReadScenarioBoolOption(Options, TEXT("ScenarioCEnableCargoSubobjects"), bScenarioCEnableCargoSubobjects, ScenarioCEnableSource);
+	TryReadScenarioIntOption(Options, TEXT("ScenarioCCargoStationCount"), ScenarioCCargoStationCount, ScenarioCStationCountSource);
 
-	if (SensorCountSource == EScenarioAOptionSource::None)
+	if (SensorCountSource == EScenarioOptionSource::None)
 	{
 		ScenarioASensorCount = ScenarioADefaultSensorCount;
 	}
-	if (DroneCountSource == EScenarioAOptionSource::None)
+	if (DroneCountSource == EScenarioOptionSource::None)
 	{
 		ScenarioADroneCount = ScenarioADefaultDroneCount;
 	}
-	if (SupplyCrateCountSource == EScenarioAOptionSource::None)
+	if (SupplyCrateCountSource == EScenarioOptionSource::None)
 	{
 		ScenarioASupplyCrateCount = ScenarioADefaultSupplyCrateCount;
 	}
-	if (RunDurationSource == EScenarioAOptionSource::None)
+	if (RunDurationSource == EScenarioOptionSource::None)
 	{
 		ScenarioARunDuration = ScenarioADefaultRunDuration;
 	}
-	if (NetworkMetricsStartDelaySource == EScenarioAOptionSource::None)
+	if (NetworkMetricsStartDelaySource == EScenarioOptionSource::None)
 	{
 		ScenarioANetworkMetricsStartDelay = ScenarioADefaultNetworkMetricsStartDelay;
 	}
-	if (NetworkMetricsDurationSource == EScenarioAOptionSource::None)
+	if (NetworkMetricsDurationSource == EScenarioOptionSource::None)
 	{
 		ScenarioANetworkMetricsDuration = ScenarioADefaultNetworkMetricsDuration;
 	}
 
 	FString RawRunId;
-	if (TryReadScenarioAOptionValue(Options, TEXT("ScenarioARunId"), RawRunId, RunIdSource))
+	if (TryReadScenarioOptionValue(Options, TEXT("ScenarioARunId"), RawRunId, RunIdSource))
 	{
 		ScenarioARunId = MakeScenarioARunId(RawRunId);
-		ScenarioARunIdSource = GetScenarioAOptionSourceLabel(RunIdSource);
+		ScenarioARunIdSource = GetScenarioOptionSourceLabel(RunIdSource);
 	}
 	else
 	{
@@ -360,9 +360,9 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		ScenarioARunIdSource = TEXT("Generated");
 	}
 
-	if (TryReadScenarioABoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering, RoleFilteringRuntimeSource))
+	if (TryReadScenarioBoolOption(Options, TEXT("ScenarioAEnableRoleFiltering"), bScenarioAEnableRoleFiltering, RoleFilteringRuntimeSource))
 	{
-		RoleFilteringSource = GetScenarioAOptionSourceLabel(RoleFilteringRuntimeSource);
+		RoleFilteringSource = GetScenarioOptionSourceLabel(RoleFilteringRuntimeSource);
 	}
 	ScenarioARoleFilteringSource = RoleFilteringSource;
 
@@ -391,19 +391,19 @@ void AIrisDemoGameMode::ApplyScenarioAOptions(const FString& Options)
 		ScenarioAAutoExitGraceSeconds,
 		bScenarioCEnableCargoSubobjects ? TEXT("Enabled") : TEXT("Disabled"),
 		ScenarioCCargoStationCount,
-		GetScenarioAOptionSourceLabel(SeedSource),
-		GetScenarioAOptionSourceLabel(SensorCountSource),
-		GetScenarioAOptionSourceLabel(DroneCountSource),
-		GetScenarioAOptionSourceLabel(SupplyCrateCountSource),
-		GetScenarioAOptionSourceLabel(UpdateIntervalSource),
-		GetScenarioAOptionSourceLabel(RunDurationSource),
-		GetScenarioAOptionSourceLabel(NetworkMetricsIntervalSource),
-		GetScenarioAOptionSourceLabel(NetworkMetricsStartDelaySource),
-		GetScenarioAOptionSourceLabel(NetworkMetricsDurationSource),
-		GetScenarioAOptionSourceLabel(AutoExitSource),
-		GetScenarioAOptionSourceLabel(AutoExitGraceSource),
-		GetScenarioAOptionSourceLabel(ScenarioCEnableSource),
-		GetScenarioAOptionSourceLabel(ScenarioCStationCountSource));
+		GetScenarioOptionSourceLabel(SeedSource),
+		GetScenarioOptionSourceLabel(SensorCountSource),
+		GetScenarioOptionSourceLabel(DroneCountSource),
+		GetScenarioOptionSourceLabel(SupplyCrateCountSource),
+		GetScenarioOptionSourceLabel(UpdateIntervalSource),
+		GetScenarioOptionSourceLabel(RunDurationSource),
+		GetScenarioOptionSourceLabel(NetworkMetricsIntervalSource),
+		GetScenarioOptionSourceLabel(NetworkMetricsStartDelaySource),
+		GetScenarioOptionSourceLabel(NetworkMetricsDurationSource),
+		GetScenarioOptionSourceLabel(AutoExitSource),
+		GetScenarioOptionSourceLabel(AutoExitGraceSource),
+		GetScenarioOptionSourceLabel(ScenarioCEnableSource),
+		GetScenarioOptionSourceLabel(ScenarioCStationCountSource));
 }
 
 void AIrisDemoGameMode::BeginPlay()

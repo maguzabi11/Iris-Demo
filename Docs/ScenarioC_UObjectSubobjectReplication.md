@@ -135,6 +135,7 @@ PIE나 local binary에서 켠 뒤 Output Log에서 다음 항목을 확인한다
 |------|------|------|-----------|
 | 2026-06-03 | Scenario C 최소 골격은 Scenario A와 별도 option으로 켠다. | Scenario A bandwidth 측정은 이미 마감했으므로 새 replicated actor/subobject가 기존 수치를 오염시키면 안 됨 | `-ScenarioCEnableCargoSubobjects=1` 실행으로 별도 검증 |
 | 2026-06-03 | 첫 구현은 actor 1개와 cargo item 1개로 제한한다. | 목표는 inventory 전체가 아니라 registered subobject replication의 빌드 가능한 최소 단위 증명 | 다음 단계에서 item array, owner-only, 이동/소비 API 확장 |
+| 2026-06-04 | GameMode의 URL/command line option source helper는 Scenario A 전용 이름 대신 Scenario 공통 이름을 사용한다. | Scenario C option도 같은 파싱 경로를 쓰므로 `GetScenarioAOptionSourceLabel(ScenarioCEnableSource)` 같은 호출은 의도를 흐림 | Scenario별 설정이 더 늘어나면 GameMode option 적용 함수를 Scenario A/C 단위로 분리 |
 
 ## 8. 다음 작업 후보
 
