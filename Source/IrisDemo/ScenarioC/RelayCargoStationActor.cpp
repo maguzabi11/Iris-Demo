@@ -7,6 +7,7 @@
 #include "Components/TextRenderComponent.h"
 #include "IrisDemo.h"
 #include "Net/UnrealNetwork.h"
+#include "ScenarioC/RelayCargoInventoryComponent.h"
 #include "ScenarioC/RelayCargoItem.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -40,10 +41,17 @@ ARelayCargoStationActor::ARelayCargoStationActor()
 	StationLabel->SetTextRenderColor(FColor::Cyan);
 	StationLabel->SetWorldSize(30.0f);
 
+	CargoInventory = CreateDefaultSubobject<URelayCargoInventoryComponent>(TEXT("CargoInventory"));
+
 	RefreshVisualState();
 }
 
-void ARelayCargoStationActor::ConfigureStation(int32 NewStationId, FName NewDebugName)
+URelayCargoItem* ARelayCargoStationActor::GetCargoItem(int32 ItemIndex) const
+{
+	return CargoInventory ? CargoInventory->GetCargoItem(ItemIndex) : nullptr;
+}
+
+void ARelayCargoStationActor::ConfigureStation(int32 NewStationId, FName NewDebugName, int32 CargoItemCount)
 {
 	if (!HasAuthority())
 	{
@@ -54,7 +62,11 @@ void ARelayCargoStationActor::ConfigureStation(int32 NewStationId, FName NewDebu
 	DebugName = NewDebugName;
 	++LastUpdateSequence;
 
-	CreateCargoItem();
+	if (CargoInventory)
+	{
+		CargoInventory->InitializeInventory(StationId, CargoItemCount);
+	}
+
 	RefreshVisualState();
 	LogCargoStationState(TEXT("configured"));
 }
@@ -66,24 +78,15 @@ void ARelayCargoStationActor::UpdateCargoItem()
 		return;
 	}
 
-	if (!CargoItem)
-	{
-		CreateCargoItem();
-	}
-
-	if (!CargoItem)
+	if (!CargoInventory || CargoInventory->GetCargoItemCount() <= 0)
 	{
 		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario C cargo update skipped: Station=%s Reason=NoCargoItem"), *GetName());
 		return;
 	}
 
 	const int32 NextSequence = LastUpdateSequence + 1;
-	const int32 NextStackCount = CargoItem->GetStackCount() <= 1 ? 6 : CargoItem->GetStackCount() - 1;
-	const int32 NextDurability = CargoItem->GetDurability() <= 10 ? 100 : CargoItem->GetDurability() - 7;
-	const int32 NextCharge = (CargoItem->GetCharge() + 17) % 101;
-	const ERelayCargoItemState NextState = NextStackCount <= 1 ? ERelayCargoItemState::Reserved : ERelayCargoItemState::Stored;
 
-	CargoItem->SetCargoState(NextStackCount, NextDurability, NextCharge, NextState);
+	CargoInventory->UpdateCargoItems();
 	LastUpdateSequence = NextSequence;
 
 	RefreshVisualState();
@@ -92,11 +95,6 @@ void ARelayCargoStationActor::UpdateCargoItem()
 
 void ARelayCargoStationActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (CargoItem && IsUsingRegisteredSubObjectList())
-	{
-		RemoveReplicatedSubObject(CargoItem);
-	}
-
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -107,13 +105,6 @@ void ARelayCargoStationActor::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(ARelayCargoStationActor, StationId);
 	DOREPLIFETIME(ARelayCargoStationActor, DebugName);
 	DOREPLIFETIME(ARelayCargoStationActor, LastUpdateSequence);
-	DOREPLIFETIME(ARelayCargoStationActor, CargoItem);
-}
-
-void ARelayCargoStationActor::OnRep_CargoItem()
-{
-	RefreshVisualState();
-	LogCargoStationState(TEXT("cargo item pointer replicated"));
 }
 
 void ARelayCargoStationActor::OnRep_LastUpdateSequence()
@@ -122,35 +113,17 @@ void ARelayCargoStationActor::OnRep_LastUpdateSequence()
 	LogCargoStationState(TEXT("replicated"));
 }
 
-void ARelayCargoStationActor::CreateCargoItem()
-{
-	if (!HasAuthority() || CargoItem)
-	{
-		return;
-	}
-
-	CargoItem = NewObject<URelayCargoItem>(this, URelayCargoItem::StaticClass(), TEXT("ScenarioC_CargoItem"));
-	if (!CargoItem)
-	{
-		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario C cargo item creation failed: Station=%s"), *GetName());
-		return;
-	}
-
-	CargoItem->ConfigureItem(StationId, FName(TEXT("RelayMedKit")), 6, 100, 25);
-	AddReplicatedSubObject(CargoItem);
-
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario C cargo item registered: Station=%s Item=%s RegisteredList=%s"),
-		*GetName(),
-		*GetNameSafe(CargoItem),
-		IsUsingRegisteredSubObjectList() ? TEXT("true") : TEXT("false"));
-}
-
 void ARelayCargoStationActor::RefreshVisualState()
 {
 	if (StationLabel)
 	{
+		const URelayCargoItem* CargoItem = GetCargoItem();
+		const int32 CargoItemCount = CargoInventory ? CargoInventory->GetCargoItemCount() : 0;
+		const int32 MaxItemSequence = CargoInventory ? CargoInventory->GetMaxCargoItemSequence() : 0;
 		const FString ItemText = CargoItem
-			? FString::Printf(TEXT("%s S%d D%d C%d"),
+			? FString::Printf(TEXT("Items %d | MaxSeq %d\n%s S%d D%d C%d"),
+				CargoItemCount,
+				MaxItemSequence,
 				*CargoItem->GetItemTag().ToString(),
 				CargoItem->GetStackCount(),
 				CargoItem->GetDurability(),
@@ -167,11 +140,12 @@ void ARelayCargoStationActor::RefreshVisualState()
 
 void ARelayCargoStationActor::LogCargoStationState(const TCHAR* Reason) const
 {
-	UE_LOG(LogIrisDemo, Log, TEXT("Relay cargo station %s: StationId=%d DebugName=%s Sequence=%d CargoItem=%s Actor=%s"),
+	UE_LOG(LogIrisDemo, Log, TEXT("Relay cargo station %s: StationId=%d DebugName=%s Sequence=%d CargoItemCount=%d CargoMaxSequence=%d Actor=%s"),
 		Reason,
 		StationId,
 		*DebugName.ToString(),
 		LastUpdateSequence,
-		*GetNameSafe(CargoItem),
+		CargoInventory ? CargoInventory->GetCargoItemCount() : 0,
+		CargoInventory ? CargoInventory->GetMaxCargoItemSequence() : 0,
 		*GetName());
 }

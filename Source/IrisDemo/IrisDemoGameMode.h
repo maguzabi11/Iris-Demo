@@ -149,6 +149,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C", meta = (ClampMin = "0"))
 	int32 ScenarioCCargoStationCount = 1;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C", meta = (ClampMin = "0"))
+	int32 ScenarioCCargoItemCount = 1;
+
 	UPROPERTY()
 	TArray<TObjectPtr<ARelaySensorActor>> ScenarioASensors;
 

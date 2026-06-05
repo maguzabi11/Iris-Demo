@@ -20,6 +20,7 @@
 #include "ScenarioA/RelayPlayerState.h"
 #include "ScenarioA/RelaySensorActor.h"
 #include "ScenarioA/RelaySupplyCrateActor.h"
+#include "ScenarioC/RelayCargoInventoryComponent.h"
 #include "ScenarioC/RelayCargoItem.h"
 #include "ScenarioC/RelayCargoStationActor.h"
 #include "TimerManager.h"
@@ -132,11 +133,19 @@ namespace
 			++Stats.StationTotal;
 			Stats.StationLastSequence = FMath::Max(Stats.StationLastSequence, CargoStation->GetLastUpdateSequence());
 
-			const URelayCargoItem* CargoItem = CargoStation->GetCargoItem();
-			if (IsValid(CargoItem))
+			const URelayCargoInventoryComponent* CargoInventory = CargoStation->GetCargoInventory();
+			if (!CargoInventory)
 			{
-				++Stats.CargoItemTotal;
-				Stats.CargoItemLastSequence = FMath::Max(Stats.CargoItemLastSequence, CargoItem->GetLastUpdateSequence());
+				continue;
+			}
+
+			for (const URelayCargoItem* CargoItem : CargoInventory->GetCargoItems())
+			{
+				if (IsValid(CargoItem))
+				{
+					++Stats.CargoItemTotal;
+					Stats.CargoItemLastSequence = FMath::Max(Stats.CargoItemLastSequence, CargoItem->GetLastUpdateSequence());
+				}
 			}
 		}
 
