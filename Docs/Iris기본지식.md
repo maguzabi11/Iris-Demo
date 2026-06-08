@@ -236,6 +236,14 @@ void URelayCargoItem::RegisterReplicationFragments(UE::Net::FFragmentRegistratio
 - item별 replication condition
 - cargo box, drone, player loadout이 같은 item instance 기반 구조 공유
 
+IrisDemo의 Scenario C 현재 구현명:
+
+- `URelayCargoItem`: 순수 `UObject` cargo item instance
+- `ARelayCargoStationActor`: replicated owner actor, registered subobject list 활성화
+- `URelayCargoInventoryComponent`: item array 생성/갱신/등록 lifecycle 담당
+
+Scenario C는 Scenario A의 bandwidth 측정값을 오염시키지 않도록 기본 비활성화하고, `-ScenarioCEnableCargoSubobjects=1`로 별도 실행한다.
+
 ## 9. Seamless Travel
 
 UE 5.7 릴리즈 노트에서 Iris seamless travel support가 명시되었다. 이 기능은 포트폴리오 데모에서 좋은 차별점이 된다.
@@ -284,6 +292,14 @@ UE 5.7 릴리즈 노트에서 Iris seamless travel support가 명시되었다. �
 - 같은 bot script
 - 같은 server tick rate
 - 같은 network emulation profile
+
+Scenario A에서 확인한 측정 해석:
+
+- 12 actor 같은 작은 조건에서는 Iris filtering으로 actor count가 줄어도 outgoing bandwidth 감소가 바로 보이지 않을 수 있다.
+- actor payload가 작으면 handshake, initial replication, connection 고정 overhead가 더 크게 보일 수 있다.
+- 공개 포트폴리오 수치는 120 detail actor heavy 조건처럼 같은 metrics window와 충분한 payload가 있는 반복 측정을 기준으로 해석한다.
+- `OutBytesPerSecond`는 순간값이므로 한 줄만 보지 않고 안정 구간 평균 또는 같은 window의 `OutTotalBytes` 증가량을 우선한다.
+- stale binary로 실행한 run은 `run.json`, CSV schema, actor count 조건을 확인해 무효 run으로 분리한다.
 
 ## 11. 흔한 함정
 

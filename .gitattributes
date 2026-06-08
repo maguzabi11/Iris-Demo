@@ -2,3 +2,11 @@
 *.umap filter=lfs diff=lfs merge=lfs -text
 *.ubulk filter=lfs diff=lfs merge=lfs -text
 *.uexp filter=lfs diff=lfs merge=lfs -text
+
+*.bat text eol=crlf
+*.cs text eol=crlf
+*.cpp text eol=crlf
+*.h text eol=crlf
+*.ini text eol=crlf
+*.md text eol=crlf
+*.uproject text eol=crlf

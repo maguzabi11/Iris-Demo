@@ -469,18 +469,77 @@ SensorLastSequence,DroneLastSequence,SupplyCrateLastSequence,SummaryLastSequence
 
 ### A7. 마무리 문서화
 
-- [ ] 구현 class 목록 추가
-- [ ] 실행 방법 추가
+- [x] 구현 class 목록 추가
+- [x] 실행 방법 추가
 - [x] 측정 결과 표 추가
 - [x] 디버깅 노트 추가
 - [x] 비교 실험 기본기 문서 추가
-- [ ] UE 5.7.1 Iris filtering 제약/주의점 추가
-- [ ] 다음 시나리오로 넘길 TODO 분리
-- [ ] `Docs/Iris기본지식.md`에 새로 확인한 Iris 사실 반영
+- [x] UE 5.7.1 Iris filtering 제약/주의점 추가
+- [x] 다음 시나리오로 넘길 TODO 분리
+- [x] `Docs/Iris기본지식.md`에 새로 확인한 Iris 사실 반영
 
 완료 기준:
 
 - 제3자가 문서만 보고 Scenario A의 목적, 실행법, 결과 해석, 남은 한계를 이해할 수 있다.
+
+공개용 구현 class 목록:
+
+| Class / Type | 파일 | 역할 |
+|--------------|------|------|
+| `ERelayOperatorRole` | `Source/IrisDemo/ScenarioA/RelayOperatorRole.h` | Commander, FieldAgent, Spectator 역할 enum |
+| `ARelayPlayerState` | `Source/IrisDemo/ScenarioA/RelayPlayerState.*` | replicated role, assigned zone, Scenario A RunId 보관 |
+| `ERelayInterestCategory`, `ERelayInterestDetailLevel` | `Source/IrisDemo/ScenarioA/RelayInterestTypes.h` | actor metadata 기반 filtering 판단 축 |
+| `ARelaySensorActor` | `Source/IrisDemo/ScenarioA/RelaySensorActor.*` | zone/detail sensor test actor |
+| `ARelayDroneActor` | `Source/IrisDemo/ScenarioA/RelayDroneActor.*` | zone/detail drone test actor |
+| `ARelaySupplyCrateActor` | `Source/IrisDemo/ScenarioA/RelaySupplyCrateActor.*` | zone/squad/detail supply crate test actor |
+| `ARelayOperationalSummaryActor` | `Source/IrisDemo/ScenarioA/RelayOperationalSummaryActor.*` | Commander/Spectator용 summary actor |
+| `AIrisDemoGameMode` | `Source/IrisDemo/IrisDemoGameMode.*` | role assignment, Scenario A spawn/update, Iris group filtering, run metadata/metrics 기록 |
+| `AIrisDemoPlayerController` | `Source/IrisDemo/IrisDemoPlayerController.*` | local role 확인과 snapshot console command 경로 |
+
+공개용 실행 방법:
+
+```bat
+Tools\BuildEditor.bat
+```
+
+패키징된 local binary 비교 실행:
+
+```bat
+Tools\RunLocalBinariesMultiplay.bat --no-iris
+Tools\RunLocalBinariesMultiplay.bat --iris
+```
+
+수동 RunId를 고정하려면 다음처럼 실행한다.
+
+```bat
+Tools\RunLocalBinariesMultiplay.bat --iris --run-id ScenarioA_PublicCheck_001
+```
+
+Scenario A의 유효 비교 기준:
+
+- Generic run은 `-UseIrisReplication=0`, `ScenarioAEnableRoleFiltering=0` 상태여야 한다.
+- Iris run은 `-UseIrisReplication=1`, `ScenarioAEnableRoleFiltering=1` 상태여야 한다.
+- seed, actor count, run duration, network metrics window를 동일하게 둔다.
+- dedicated server + 3 clients에서 Commander, FieldAgent, Spectator snapshot이 모두 있어야 한다.
+- `run.json`, `client_snapshots.csv`, `server_network_metrics.csv`가 같은 RunId 기준으로 남아야 한다.
+
+UE 5.7.1 Iris filtering 제약/주의점:
+
+- UE 5.7.1 기준 `TargetRules.bUseIris`는 존재하지 않으므로 Target.cs에 추가하지 않는다.
+- Iris 활성화는 `.uproject`, `IrisDemo.Build.cs`의 `SetupIrisSupport(Target)`, `DefaultEngine.ini`, 실행 인자로 관리한다.
+- `net.Iris.UseIrisReplication` CVar 로그만으로 판정하지 않고, 실제 `UNetDriver::IsUsingIrisReplication()` 결과를 우선한다.
+- Scenario A의 role filtering은 Iris group filtering API를 사용한다. Generic control run에서는 role filtering을 적용하지 않는다.
+- FieldAgent/Spectator가 detail actor를 덜 받는 것은 actor 속성 변화가 아니라 connection role과 actor metadata를 비교한 filtering policy 결과다.
+- 12 actor 조건처럼 payload가 작은 run은 actor count 감소가 곧바로 bandwidth 감소로 보이지 않을 수 있다. 공개 수치 해석은 120 actor heavy 반복 측정을 기준으로 한다.
+
+다음 시나리오로 넘긴 TODO:
+
+- `Docs/Iris기본지식.md`에 Scenario A에서 확인한 실행/측정 제약 반영
+- Scenario C의 `URelayCargoInventoryComponent` item array replication을 local binary에서 반복 확인
+- cargo item visibility를 owner/role/zone policy와 결합
+- Scenario B prioritization/push model을 현재 RunId 측정 하네스와 연결
+- Scenario D seamless travel에서 PlayerState/loadout 유지 검증
+- Commander bandwidth 감소 원인을 NetTrace/CSV profiling으로 추가 분석
 
 ## 6. 결과 기록 표
 
