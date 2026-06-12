@@ -7,6 +7,16 @@
 Docs/학습/
 Docs/참고자료/
 
+# Local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.mobileprovision
+
 # Unreal Engine generated folders
 Binaries/
 Build/
