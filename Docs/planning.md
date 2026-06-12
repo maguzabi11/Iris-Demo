@@ -188,6 +188,8 @@
 
 ## 5. 프로젝트 구조 제안
 
+초기 템플릿에 포함된 `Variant_*` 예제 코드는 Iris Relay Lab 데모 범위에서 제외한다. 관련 C++ 폴더, 콘텐츠 폴더, 월드 파티션 `__ExternalActors__`/`__ExternalObjects__` Variant 리소스는 제거하고, `IrisDemo.Build.cs`에는 IrisDemo 모듈 기본 include path와 Iris 설정만 유지한다.
+
 ```text
 IrisDemo/
 ├── Docs/

@@ -28,20 +28,7 @@ public class IrisDemo : ModuleRules
 		});
 
 		PublicIncludePaths.AddRange(new string[] {
-			"IrisDemo",
-			"IrisDemo/Variant_Platforming",
-			"IrisDemo/Variant_Platforming/Animation",
-			"IrisDemo/Variant_Combat",
-			"IrisDemo/Variant_Combat/AI",
-			"IrisDemo/Variant_Combat/Animation",
-			"IrisDemo/Variant_Combat/Gameplay",
-			"IrisDemo/Variant_Combat/Interfaces",
-			"IrisDemo/Variant_Combat/UI",
-			"IrisDemo/Variant_SideScrolling",
-			"IrisDemo/Variant_SideScrolling/AI",
-			"IrisDemo/Variant_SideScrolling/Gameplay",
-			"IrisDemo/Variant_SideScrolling/Interfaces",
-			"IrisDemo/Variant_SideScrolling/UI"
+			"IrisDemo"
 		});
 
 		// Uncomment if you are using Slate UI
