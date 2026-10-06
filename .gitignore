@@ -65,3 +65,7 @@ desktop.ini
 .vs/
 .vscode/
 .idea/
+
+# Local working documents are excluded from distribution
+/[Dd][Oo][Cc][Ss]/
+/AGENTS.md

@@ -5,7 +5,10 @@ set "PROJECT_ROOT=%~dp0.."
 for %%I in ("%PROJECT_ROOT%") do set "PROJECT_ROOT=%%~fI"
 
 set "UE_ENGINE_DIR=%UE_571_ENGINE_DIR%"
-if "%UE_ENGINE_DIR%"=="" set "UE_ENGINE_DIR=G:\UE\UnrealEngine-5.7.1-release\Engine"
+if "%UE_ENGINE_DIR%"=="" (
+    echo Set UE_571_ENGINE_DIR to the Unreal Engine 5.7.1 Engine directory.
+    exit /b 1
+)
 
 set "UNREAL_EDITOR=%UE_ENGINE_DIR%\Binaries\Win64\UnrealEditor.exe"
 set "PROJECT_FILE=%PROJECT_ROOT%\IrisDemo.uproject"
