@@ -31,6 +31,7 @@
 namespace
 {
 constexpr int32 ScenarioAZoneCount = 3;
+constexpr int32 ScenarioASquadCount = 2;
 constexpr int32 ScenarioADefaultSensorCount = 60;
 constexpr int32 ScenarioADefaultDroneCount = 30;
 constexpr int32 ScenarioADefaultSupplyCrateCount = 30;
@@ -38,8 +39,33 @@ constexpr float ScenarioADefaultRunDuration = 95.0f;
 constexpr float ScenarioADefaultNetworkMetricsStartDelay = 30.0f;
 constexpr float ScenarioAPieNetworkMetricsStartDelay = 5.0f;
 constexpr float ScenarioADefaultNetworkMetricsDuration = 60.0f;
+constexpr float ScenarioAFilterRefreshDelaySeconds = 0.2f;
 const TCHAR* ScenarioAGameModeConfigSection = TEXT("/Script/IrisDemo.IrisDemoGameMode");
 const TCHAR* ScenarioAEnableRoleFilteringConfigKey = TEXT("bScenarioAEnableRoleFiltering");
+
+namespace ScenarioLayout
+{
+constexpr double ZoneSpacingX = 450.0;
+
+constexpr double SensorRowSpacingY = 350.0;
+constexpr double SensorHeightZ = 120.0;
+
+constexpr double DroneLineY = -300.0;
+constexpr double DroneBaseHeightZ = 260.0;
+constexpr double DroneHeightStepZ = 30.0;
+constexpr double DroneYawStep = 45.0;
+
+constexpr double CrateLineY = 650.0;
+constexpr double CrateHeightZ = 90.0;
+constexpr double CrateYawStep = 30.0;
+
+const FVector OperationalSummaryLocation(450.0, 1050.0, 150.0);
+
+constexpr double CargoStationLineX = -450.0;
+constexpr double CargoStationBaseY = 1050.0;
+constexpr double CargoStationSpacingY = 220.0;
+constexpr double CargoStationHeightZ = 90.0;
+}
 
 enum class EScenarioOptionSource : uint8
 {
@@ -142,6 +168,11 @@ bool TryReadScenarioABoolConfig(const TCHAR* SectionName, const TCHAR* OptionNam
 	return GConfig && GConfig->GetBool(SectionName, OptionName, OutValue, GGameIni);
 }
 
+FName MakeScenarioActorName(const TCHAR* Prefix, int32 Index)
+{
+	return FName(*FString::Printf(TEXT("%s_%02d"), Prefix, Index));
+}
+
 int32 NormalizeScenarioAZoneId(int32 ZoneId)
 {
 	return FMath::Clamp(ZoneId, 0, ScenarioAZoneCount - 1);
@@ -217,6 +248,132 @@ bool ShouldScenarioAConnectionReceiveDetailZone(ERelayOperatorRole Role, int32 A
 bool ShouldScenarioAConnectionReceiveSummary(ERelayOperatorRole Role)
 {
 	return Role == ERelayOperatorRole::Commander || Role == ERelayOperatorRole::Spectator;
+}
+
+UE::Net::ENetFilterStatus ToNetFilterStatus(bool bAllow)
+{
+	return bAllow ? UE::Net::ENetFilterStatus::Allow : UE::Net::ENetFilterStatus::Disallow;
+}
+
+const TCHAR* GetNetFilterStatusLabel(bool bAllow)
+{
+	return bAllow ? TEXT("Allow") : TEXT("Disallow");
+}
+
+struct FScenarioAFilterContext
+{
+	UReplicationSystem* ReplicationSystem = nullptr;
+	UObjectReplicationBridge* ReplicationBridge = nullptr;
+	UE::Net::FNetObjectGroupHandle DetailZoneGroups[ScenarioAZoneCount];
+	UE::Net::FNetObjectGroupHandle SummaryGroup;
+};
+
+bool TryMakeScenarioAFilterContext(const UWorld& World, FScenarioAFilterContext& OutContext)
+{
+	if (!IsUsingIrisReplication(&World))
+	{
+		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=IrisDisabled"),
+			*GetIrisReplicationModeLabel(&World));
+		return false;
+	}
+
+	OutContext.ReplicationSystem = UE::Net::FReplicationSystemUtil::GetReplicationSystem(&World);
+	if (!OutContext.ReplicationSystem)
+	{
+		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=NoReplicationSystem"),
+			*GetIrisReplicationModeLabel(&World));
+		return false;
+	}
+
+	OutContext.ReplicationBridge = OutContext.ReplicationSystem->GetReplicationBridge();
+	if (!OutContext.ReplicationBridge)
+	{
+		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=NoReplicationBridge"),
+			*GetIrisReplicationModeLabel(&World));
+		return false;
+	}
+
+	for (int32 ZoneId = 0; ZoneId < ScenarioAZoneCount; ++ZoneId)
+	{
+		OutContext.DetailZoneGroups[ZoneId] = GetOrCreateScenarioAExclusionGroup(*OutContext.ReplicationSystem, GetScenarioADetailFilterGroupName(ZoneId));
+	}
+	OutContext.SummaryGroup = GetOrCreateScenarioAExclusionGroup(*OutContext.ReplicationSystem, GetScenarioASummaryFilterGroupName());
+
+	return true;
+}
+
+template <typename TActor>
+void AddDetailActorsToScenarioAFilterGroups(const FScenarioAFilterContext& Context, const TArray<TObjectPtr<TActor>>& Actors)
+{
+	for (const TActor* Actor : Actors)
+	{
+		if (IsValid(Actor))
+		{
+			const int32 ZoneId = NormalizeScenarioAZoneId(Actor->GetZoneId());
+			AddActorToScenarioAFilterGroup(*Context.ReplicationSystem, *Context.ReplicationBridge, Actor, Context.DetailZoneGroups[ZoneId], GetScenarioADetailFilterGroupName(ZoneId));
+		}
+	}
+}
+
+void ApplyScenarioAConnectionFilter(const FScenarioAFilterContext& Context, const UWorld& World, const APlayerController& PlayerController)
+{
+	const UNetConnection* NetConnection = PlayerController.GetNetConnection();
+	if (!NetConnection || !NetConnection->GetConnectionHandle().IsValid())
+	{
+		UE_LOG(LogIrisDemo, Verbose, TEXT("Scenario A role filtering skipped local controller: Controller=%s"),
+			*GetNameSafe(&PlayerController));
+		return;
+	}
+
+	const ARelayPlayerState* RelayPlayerState = PlayerController.GetPlayerState<ARelayPlayerState>();
+	const ERelayOperatorRole OperatorRole = RelayPlayerState ? RelayPlayerState->GetOperatorRole() : ERelayOperatorRole::Unassigned;
+	const int32 AssignedZoneId = RelayPlayerState ? RelayPlayerState->GetAssignedZoneId() : INDEX_NONE;
+	const uint32 ConnectionId = NetConnection->GetConnectionHandle().GetParentConnectionId();
+	UReplicationSystem& ReplicationSystem = *Context.ReplicationSystem;
+
+	FString DetailZoneLabels;
+	for (int32 ZoneId = 0; ZoneId < ScenarioAZoneCount; ++ZoneId)
+	{
+		const bool bAllowDetail = ShouldScenarioAConnectionReceiveDetailZone(OperatorRole, AssignedZoneId, ZoneId);
+		if (ReplicationSystem.IsValidGroup(Context.DetailZoneGroups[ZoneId]))
+		{
+			ReplicationSystem.SetGroupFilterStatus(Context.DetailZoneGroups[ZoneId], ConnectionId, ToNetFilterStatus(bAllowDetail));
+		}
+
+		DetailZoneLabels += FString::Printf(TEXT("%sZ%d:%s"), ZoneId > 0 ? TEXT(" ") : TEXT(""), ZoneId, GetNetFilterStatusLabel(bAllowDetail));
+	}
+
+	const bool bAllowSummary = ShouldScenarioAConnectionReceiveSummary(OperatorRole);
+	if (ReplicationSystem.IsValidGroup(Context.SummaryGroup))
+	{
+		ReplicationSystem.SetGroupFilterStatus(Context.SummaryGroup, ConnectionId, ToNetFilterStatus(bAllowSummary));
+	}
+
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A role filtering applied: Mode=%s ConnectionId=%u Controller=%s Role=%s AssignedZone=%d Summary=%s DetailZones=[%s]"),
+		*GetIrisReplicationModeLabel(&World),
+		ConnectionId,
+		*GetNameSafe(&PlayerController),
+		RelayPlayerState ? *RelayPlayerState->GetOperatorRoleName() : TEXT("Unassigned"),
+		AssignedZoneId,
+		GetNetFilterStatusLabel(bAllowSummary),
+		*DetailZoneLabels);
+}
+
+EDroneRelayState SelectNextScenarioADroneState(int32 NextBattery, int32 DroneIndex)
+{
+	if (NextBattery <= 15)
+	{
+		return EDroneRelayState::Disabled;
+	}
+	if (NextBattery <= 35)
+	{
+		return EDroneRelayState::Returning;
+	}
+	if ((DroneIndex + NextBattery) % 3 == 0)
+	{
+		return EDroneRelayState::Investigating;
+	}
+	return EDroneRelayState::Patrol;
 }
 
 FString EscapeScenarioAJsonString(const FString& Value)
@@ -420,21 +577,38 @@ void AIrisDemoGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	SpawnScenarioActors();
+	LogScenarioABaselineConfig();
+	WriteScenarioARunMetadata();
+	QueueScenarioAFilterRefresh();
+	StartScenarioTimers();
+}
+
+void AIrisDemoGameMode::SpawnScenarioActors()
+{
 	SpawnScenarioASensors();
 	SpawnScenarioADrones();
 	SpawnScenarioASupplyCrates();
 	SpawnScenarioAOperationalSummary();
 	SpawnScenarioCCargoStations();
-	LogScenarioABaselineConfig();
-	WriteScenarioARunMetadata();
-	QueueScenarioAFilterRefresh();
+}
 
+float AIrisDemoGameMode::GetScenarioAAutoExitDelay() const
+{
+	const float MetricsEndTime = ScenarioANetworkMetricsDuration > 0.0f
+		? ScenarioANetworkMetricsStartDelay + ScenarioANetworkMetricsDuration
+		: 0.0f;
+	return FMath::Max(ScenarioARunDuration, MetricsEndTime) + ScenarioAAutoExitGraceSeconds;
+}
+
+void AIrisDemoGameMode::StartScenarioTimers()
+{
 	if ((ScenarioASensors.Num() > 0 || ScenarioADrones.Num() > 0 || ScenarioASupplyCrates.Num() > 0 || ScenarioCCargoStations.Num() > 0) && ScenarioASensorUpdateInterval > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(
-			ScenarioASensorUpdateTimerHandle,
+			ScenarioSimulationTickTimerHandle,
 			this,
-			&AIrisDemoGameMode::UpdateScenarioASensors,
+			&AIrisDemoGameMode::TickScenarioSimulation,
 			ScenarioASensorUpdateInterval,
 			true);
 	}
@@ -468,10 +642,7 @@ void AIrisDemoGameMode::BeginPlay()
 
 	if (bScenarioAAutoExit)
 	{
-		const float MetricsEndTime = ScenarioANetworkMetricsDuration > 0.0f
-			? ScenarioANetworkMetricsStartDelay + ScenarioANetworkMetricsDuration
-			: 0.0f;
-		const float AutoExitDelay = FMath::Max(ScenarioARunDuration, MetricsEndTime) + ScenarioAAutoExitGraceSeconds;
+		const float AutoExitDelay = GetScenarioAAutoExitDelay();
 		if (AutoExitDelay > 0.0f)
 		{
 			GetWorldTimerManager().SetTimer(
@@ -484,27 +655,21 @@ void AIrisDemoGameMode::BeginPlay()
 			UE_LOG(LogIrisDemo, Log, TEXT("Scenario A server auto exit scheduled: Delay=%.2f Grace=%.2f RunId=%s"),
 				AutoExitDelay,
 				ScenarioAAutoExitGraceSeconds,
-				*MakeScenarioARunId(ScenarioARunId));
+				*ScenarioARunId);
 		}
 	}
 }
 
 void AIrisDemoGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorldTimerManager().ClearTimer(ScenarioASensorUpdateTimerHandle);
-	GetWorldTimerManager().ClearTimer(ScenarioABaselineCompleteTimerHandle);
-	GetWorldTimerManager().ClearTimer(ScenarioAFilterRefreshTimerHandle);
-	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsStartTimerHandle);
-	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsTimerHandle);
-	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsStopTimerHandle);
-	GetWorldTimerManager().ClearTimer(ScenarioAAutoExitTimerHandle);
+	GetWorldTimerManager().ClearAllTimersForObject(this);
 
 	Super::EndPlay(EndPlayReason);
 }
 
 void AIrisDemoGameMode::RequestScenarioAAutoExit()
 {
-	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A server auto exit requested: RunId=%s"), *MakeScenarioARunId(ScenarioARunId));
+	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A server auto exit requested: RunId=%s"), *ScenarioARunId);
 	FPlatformMisc::RequestExit(false);
 }
 
@@ -519,7 +684,7 @@ void AIrisDemoGameMode::PostLogin(APlayerController* NewPlayer)
 
 	if (ARelayPlayerState* RelayPlayerState = NewPlayer->GetPlayerState<ARelayPlayerState>())
 	{
-		RelayPlayerState->SetScenarioARunId(MakeScenarioARunId(ScenarioARunId));
+		RelayPlayerState->SetScenarioARunId(ScenarioARunId);
 		const ERelayOperatorRole AssignedRole = GetNextScenarioARole();
 		RelayPlayerState->SetOperatorRole(AssignedRole);
 		RelayPlayerState->SetAssignedZoneId(GetScenarioAZoneForRole(AssignedRole));
@@ -558,15 +723,19 @@ int32 AIrisDemoGameMode::GetScenarioAZoneForRole(ERelayOperatorRole OperatorRole
 	return AssignedZoneId;
 }
 
+template <typename TActor>
+TActor* AIrisDemoGameMode::SpawnScenarioActor(TSubclassOf<TActor> ActorClass, const FVector& Location, const FRotator& Rotation)
+{
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	return GetWorld()->SpawnActor<TActor>(ActorClass, Location, Rotation, SpawnParameters);
+}
+
 void AIrisDemoGameMode::SpawnScenarioASensors()
 {
-	if (!HasAuthority() || !ScenarioASensorClass || ScenarioASensorCount <= 0)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
+	if (!HasAuthority() || !ScenarioASensorClass || ScenarioASensorCount <= 0 || !GetWorld())
 	{
 		return;
 	}
@@ -575,23 +744,14 @@ void AIrisDemoGameMode::SpawnScenarioASensors()
 
 	for (int32 SensorIndex = 0; SensorIndex < ScenarioASensorCount; ++SensorIndex)
 	{
-		const int32 ZoneId = SensorIndex % 3;
+		const int32 ZoneId = SensorIndex % ScenarioAZoneCount;
+		const int32 RowIndex = SensorIndex / ScenarioAZoneCount;
 		const FVector SpawnLocation(
-			static_cast<double>(ZoneId) * 450.0,
-			static_cast<double>(SensorIndex / 3) * 350.0,
-			120.0);
-		const FRotator SpawnRotation = FRotator::ZeroRotator;
+			ZoneId * ScenarioLayout::ZoneSpacingX,
+			RowIndex * ScenarioLayout::SensorRowSpacingY,
+			ScenarioLayout::SensorHeightZ);
 
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.Owner = this;
-		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		ARelaySensorActor* Sensor = World->SpawnActor<ARelaySensorActor>(
-			ScenarioASensorClass,
-			SpawnLocation,
-			SpawnRotation,
-			SpawnParameters);
-
+		ARelaySensorActor* Sensor = SpawnScenarioActor(ScenarioASensorClass, SpawnLocation, FRotator::ZeroRotator);
 		if (!Sensor)
 		{
 			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A sensor spawn failed: Index=%d Zone=%d"), SensorIndex, ZoneId);
@@ -599,12 +759,26 @@ void AIrisDemoGameMode::SpawnScenarioASensors()
 		}
 
 		const int32 InitialAlertLevel = (ScenarioASeed + SensorIndex + ZoneId) % 5;
-		Sensor->ConfigureSensor(SensorIndex, ZoneId, FName(*FString::Printf(TEXT("Sensor_%02d"), SensorIndex)), true);
+		Sensor->ConfigureSensor(SensorIndex, ZoneId, MakeScenarioActorName(TEXT("Sensor"), SensorIndex), true);
 		Sensor->SetSensorState(InitialAlertLevel, InitialAlertLevel >= 3);
 		ScenarioASensors.Add(Sensor);
 	}
 
 	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A sensors spawned: Count=%d"), ScenarioASensors.Num());
+}
+
+void AIrisDemoGameMode::TickScenarioSimulation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	UpdateScenarioASensors();
+	UpdateScenarioADrones();
+	UpdateScenarioASupplyCrates();
+	UpdateScenarioAOperationalSummary();
+	UpdateScenarioCCargoStations();
 }
 
 void AIrisDemoGameMode::UpdateScenarioASensors()
@@ -626,22 +800,11 @@ void AIrisDemoGameMode::UpdateScenarioASensors()
 		const bool bNextTriggered = NextAlertLevel >= 3;
 		Sensor->SetSensorState(NextAlertLevel, bNextTriggered);
 	}
-
-	UpdateScenarioADrones();
-	UpdateScenarioASupplyCrates();
-	UpdateScenarioAOperationalSummary();
-	UpdateScenarioCCargoStations();
 }
 
 void AIrisDemoGameMode::SpawnScenarioADrones()
 {
-	if (!HasAuthority() || !ScenarioADroneClass || ScenarioADroneCount <= 0)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
+	if (!HasAuthority() || !ScenarioADroneClass || ScenarioADroneCount <= 0 || !GetWorld())
 	{
 		return;
 	}
@@ -650,23 +813,14 @@ void AIrisDemoGameMode::SpawnScenarioADrones()
 
 	for (int32 DroneIndex = 0; DroneIndex < ScenarioADroneCount; ++DroneIndex)
 	{
-		const int32 ZoneId = DroneIndex % 3;
+		const int32 ZoneId = DroneIndex % ScenarioAZoneCount;
 		const FVector SpawnLocation(
-			static_cast<double>(ZoneId) * 450.0,
-			-300.0,
-			260.0 + static_cast<double>(DroneIndex) * 30.0);
-		const FRotator SpawnRotation(0.0, 45.0 * static_cast<double>(DroneIndex), 0.0);
+			ZoneId * ScenarioLayout::ZoneSpacingX,
+			ScenarioLayout::DroneLineY,
+			ScenarioLayout::DroneBaseHeightZ + DroneIndex * ScenarioLayout::DroneHeightStepZ);
+		const FRotator SpawnRotation(0.0, DroneIndex * ScenarioLayout::DroneYawStep, 0.0);
 
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.Owner = this;
-		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		ARelayDroneActor* Drone = World->SpawnActor<ARelayDroneActor>(
-			ScenarioADroneClass,
-			SpawnLocation,
-			SpawnRotation,
-			SpawnParameters);
-
+		ARelayDroneActor* Drone = SpawnScenarioActor(ScenarioADroneClass, SpawnLocation, SpawnRotation);
 		if (!Drone)
 		{
 			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A drone spawn failed: Index=%d Zone=%d"), DroneIndex, ZoneId);
@@ -674,7 +828,7 @@ void AIrisDemoGameMode::SpawnScenarioADrones()
 		}
 
 		const int32 InitialBattery = FMath::Clamp(100 - DroneIndex * 15 - (ScenarioASeed % 8), 1, 100);
-		Drone->ConfigureDrone(DroneIndex, ZoneId, FName(*FString::Printf(TEXT("Drone_%02d"), DroneIndex)), true);
+		Drone->ConfigureDrone(DroneIndex, ZoneId, MakeScenarioActorName(TEXT("Drone"), DroneIndex), true);
 		Drone->SetDroneState(InitialBattery, EDroneRelayState::Patrol);
 		ScenarioADrones.Add(Drone);
 	}
@@ -698,33 +852,13 @@ void AIrisDemoGameMode::UpdateScenarioADrones()
 		}
 
 		const int32 NextBattery = (Drone->GetBatteryPercent() <= 10) ? 100 : Drone->GetBatteryPercent() - (5 + DroneIndex);
-		EDroneRelayState NextState = EDroneRelayState::Patrol;
-		if (NextBattery <= 15)
-		{
-			NextState = EDroneRelayState::Disabled;
-		}
-		else if (NextBattery <= 35)
-		{
-			NextState = EDroneRelayState::Returning;
-		}
-		else if ((DroneIndex + NextBattery) % 3 == 0)
-		{
-			NextState = EDroneRelayState::Investigating;
-		}
-
-		Drone->SetDroneState(NextBattery, NextState);
+		Drone->SetDroneState(NextBattery, SelectNextScenarioADroneState(NextBattery, DroneIndex));
 	}
 }
 
 void AIrisDemoGameMode::SpawnScenarioASupplyCrates()
 {
-	if (!HasAuthority() || !ScenarioASupplyCrateClass || ScenarioASupplyCrateCount <= 0)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
+	if (!HasAuthority() || !ScenarioASupplyCrateClass || ScenarioASupplyCrateCount <= 0 || !GetWorld())
 	{
 		return;
 	}
@@ -733,24 +867,15 @@ void AIrisDemoGameMode::SpawnScenarioASupplyCrates()
 
 	for (int32 CrateIndex = 0; CrateIndex < ScenarioASupplyCrateCount; ++CrateIndex)
 	{
-		const int32 ZoneId = CrateIndex % 3;
-		const int32 OwningSquadId = CrateIndex % 2;
+		const int32 ZoneId = CrateIndex % ScenarioAZoneCount;
+		const int32 OwningSquadId = CrateIndex % ScenarioASquadCount;
 		const FVector SpawnLocation(
-			static_cast<double>(ZoneId) * 450.0,
-			650.0,
-			90.0);
-		const FRotator SpawnRotation(0.0, 30.0 * static_cast<double>(CrateIndex), 0.0);
+			ZoneId * ScenarioLayout::ZoneSpacingX,
+			ScenarioLayout::CrateLineY,
+			ScenarioLayout::CrateHeightZ);
+		const FRotator SpawnRotation(0.0, CrateIndex * ScenarioLayout::CrateYawStep, 0.0);
 
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.Owner = this;
-		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		ARelaySupplyCrateActor* SupplyCrate = World->SpawnActor<ARelaySupplyCrateActor>(
-			ScenarioASupplyCrateClass,
-			SpawnLocation,
-			SpawnRotation,
-			SpawnParameters);
-
+		ARelaySupplyCrateActor* SupplyCrate = SpawnScenarioActor(ScenarioASupplyCrateClass, SpawnLocation, SpawnRotation);
 		if (!SupplyCrate)
 		{
 			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A supply crate spawn failed: Index=%d Zone=%d Squad=%d"), CrateIndex, ZoneId, OwningSquadId);
@@ -759,7 +884,7 @@ void AIrisDemoGameMode::SpawnScenarioASupplyCrates()
 
 		const int32 InitialStockCount = 12 + CrateIndex * 4 + (ScenarioASeed % 3);
 		const bool bInitialReserved = ((ScenarioASeed + CrateIndex) % 2) == 0;
-		SupplyCrate->ConfigureCrate(CrateIndex, ZoneId, OwningSquadId, FName(*FString::Printf(TEXT("Crate_%02d"), CrateIndex)), true);
+		SupplyCrate->ConfigureCrate(CrateIndex, ZoneId, OwningSquadId, MakeScenarioActorName(TEXT("Crate"), CrateIndex), true);
 		SupplyCrate->SetCrateState(InitialStockCount, bInitialReserved);
 		ScenarioASupplyCrates.Add(SupplyCrate);
 	}
@@ -790,27 +915,15 @@ void AIrisDemoGameMode::UpdateScenarioASupplyCrates()
 
 void AIrisDemoGameMode::SpawnScenarioAOperationalSummary()
 {
-	if (!HasAuthority() || !ScenarioAOperationalSummaryClass)
+	if (!HasAuthority() || !ScenarioAOperationalSummaryClass || !GetWorld())
 	{
 		return;
 	}
 
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = this;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	ScenarioAOperationalSummary = World->SpawnActor<ARelayOperationalSummaryActor>(
+	ScenarioAOperationalSummary = SpawnScenarioActor(
 		ScenarioAOperationalSummaryClass,
-		FVector(450.0, 1050.0, 150.0),
-		FRotator::ZeroRotator,
-		SpawnParameters);
-
+		ScenarioLayout::OperationalSummaryLocation,
+		FRotator::ZeroRotator);
 	if (!ScenarioAOperationalSummary)
 	{
 		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A operational summary spawn failed"));
@@ -862,13 +975,7 @@ void AIrisDemoGameMode::UpdateScenarioAOperationalSummary()
 
 void AIrisDemoGameMode::SpawnScenarioCCargoStations()
 {
-	if (!HasAuthority() || !bScenarioCEnableCargoSubobjects || !ScenarioCCargoStationClass || ScenarioCCargoStationCount <= 0)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
+	if (!HasAuthority() || !bScenarioCEnableCargoSubobjects || !ScenarioCCargoStationClass || ScenarioCCargoStationCount <= 0 || !GetWorld())
 	{
 		return;
 	}
@@ -878,27 +985,18 @@ void AIrisDemoGameMode::SpawnScenarioCCargoStations()
 	for (int32 StationIndex = 0; StationIndex < ScenarioCCargoStationCount; ++StationIndex)
 	{
 		const FVector SpawnLocation(
-			-450.0,
-			1050.0 + static_cast<double>(StationIndex) * 220.0,
-			90.0);
+			ScenarioLayout::CargoStationLineX,
+			ScenarioLayout::CargoStationBaseY + StationIndex * ScenarioLayout::CargoStationSpacingY,
+			ScenarioLayout::CargoStationHeightZ);
 
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.Owner = this;
-		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		ARelayCargoStationActor* CargoStation = World->SpawnActor<ARelayCargoStationActor>(
-			ScenarioCCargoStationClass,
-			SpawnLocation,
-			FRotator::ZeroRotator,
-			SpawnParameters);
-
+		ARelayCargoStationActor* CargoStation = SpawnScenarioActor(ScenarioCCargoStationClass, SpawnLocation, FRotator::ZeroRotator);
 		if (!CargoStation)
 		{
 			UE_LOG(LogIrisDemo, Warning, TEXT("Scenario C cargo station spawn failed: Index=%d"), StationIndex);
 			continue;
 		}
 
-		CargoStation->ConfigureStation(StationIndex, FName(*FString::Printf(TEXT("CargoStation_%02d"), StationIndex)), ScenarioCCargoItemCount);
+		CargoStation->ConfigureStation(StationIndex, MakeScenarioActorName(TEXT("CargoStation"), StationIndex), ScenarioCCargoItemCount);
 		ScenarioCCargoStations.Add(CargoStation);
 	}
 
@@ -943,7 +1041,7 @@ void AIrisDemoGameMode::QueueScenarioAFilterRefresh()
 		ScenarioAFilterRefreshTimerHandle,
 		this,
 		&AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering,
-		0.2f,
+		ScenarioAFilterRefreshDelaySeconds,
 		false);
 }
 
@@ -960,118 +1058,23 @@ void AIrisDemoGameMode::ApplyScenarioARoleBasedFiltering()
 		return;
 	}
 
-	if (!IsUsingIrisReplication(World))
+	FScenarioAFilterContext Context;
+	if (!TryMakeScenarioAFilterContext(*World, Context))
 	{
-		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=IrisDisabled"),
-			*GetIrisReplicationModeLabel(World));
 		return;
 	}
 
-	UReplicationSystem* ReplicationSystem = UE::Net::FReplicationSystemUtil::GetReplicationSystem(World);
-	if (!ReplicationSystem)
-	{
-		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=NoReplicationSystem"),
-			*GetIrisReplicationModeLabel(World));
-		return;
-	}
-
-	UObjectReplicationBridge* ReplicationBridge = ReplicationSystem->GetReplicationBridge();
-	if (!ReplicationBridge)
-	{
-		UE_LOG(LogIrisDemo, Warning, TEXT("Scenario A role filtering skipped: Mode=%s Reason=NoReplicationBridge"),
-			*GetIrisReplicationModeLabel(World));
-		return;
-	}
-
-	UE::Net::FNetObjectGroupHandle DetailZoneGroups[ScenarioAZoneCount];
-	for (int32 ZoneId = 0; ZoneId < ScenarioAZoneCount; ++ZoneId)
-	{
-		DetailZoneGroups[ZoneId] = GetOrCreateScenarioAExclusionGroup(*ReplicationSystem, GetScenarioADetailFilterGroupName(ZoneId));
-	}
-
-	const UE::Net::FNetObjectGroupHandle SummaryGroup = GetOrCreateScenarioAExclusionGroup(*ReplicationSystem, GetScenarioASummaryFilterGroupName());
-
-	for (const ARelaySensorActor* Sensor : ScenarioASensors)
-	{
-		if (IsValid(Sensor))
-		{
-			const int32 ZoneId = NormalizeScenarioAZoneId(Sensor->GetZoneId());
-			AddActorToScenarioAFilterGroup(*ReplicationSystem, *ReplicationBridge, Sensor, DetailZoneGroups[ZoneId], GetScenarioADetailFilterGroupName(ZoneId));
-		}
-	}
-
-	for (const ARelayDroneActor* Drone : ScenarioADrones)
-	{
-		if (IsValid(Drone))
-		{
-			const int32 ZoneId = NormalizeScenarioAZoneId(Drone->GetZoneId());
-			AddActorToScenarioAFilterGroup(*ReplicationSystem, *ReplicationBridge, Drone, DetailZoneGroups[ZoneId], GetScenarioADetailFilterGroupName(ZoneId));
-		}
-	}
-
-	for (const ARelaySupplyCrateActor* SupplyCrate : ScenarioASupplyCrates)
-	{
-		if (IsValid(SupplyCrate))
-		{
-			const int32 ZoneId = NormalizeScenarioAZoneId(SupplyCrate->GetZoneId());
-			AddActorToScenarioAFilterGroup(*ReplicationSystem, *ReplicationBridge, SupplyCrate, DetailZoneGroups[ZoneId], GetScenarioADetailFilterGroupName(ZoneId));
-		}
-	}
-
-	AddActorToScenarioAFilterGroup(*ReplicationSystem, *ReplicationBridge, ScenarioAOperationalSummary, SummaryGroup, GetScenarioASummaryFilterGroupName());
+	AddDetailActorsToScenarioAFilterGroups(Context, ScenarioASensors);
+	AddDetailActorsToScenarioAFilterGroups(Context, ScenarioADrones);
+	AddDetailActorsToScenarioAFilterGroups(Context, ScenarioASupplyCrates);
+	AddActorToScenarioAFilterGroup(*Context.ReplicationSystem, *Context.ReplicationBridge, ScenarioAOperationalSummary, Context.SummaryGroup, GetScenarioASummaryFilterGroupName());
 
 	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 	{
-		APlayerController* PlayerController = It->Get();
-		if (!PlayerController)
+		if (const APlayerController* PlayerController = It->Get())
 		{
-			continue;
+			ApplyScenarioAConnectionFilter(Context, *World, *PlayerController);
 		}
-
-		const UNetConnection* NetConnection = PlayerController->GetNetConnection();
-		if (!NetConnection || !NetConnection->GetConnectionHandle().IsValid())
-		{
-			UE_LOG(LogIrisDemo, Verbose, TEXT("Scenario A role filtering skipped local controller: Controller=%s"),
-				*GetNameSafe(PlayerController));
-			continue;
-		}
-
-		const ARelayPlayerState* RelayPlayerState = PlayerController->GetPlayerState<ARelayPlayerState>();
-		const ERelayOperatorRole OperatorRole = RelayPlayerState ? RelayPlayerState->GetOperatorRole() : ERelayOperatorRole::Unassigned;
-		const int32 AssignedZoneId = RelayPlayerState ? RelayPlayerState->GetAssignedZoneId() : INDEX_NONE;
-		const uint32 ConnectionId = NetConnection->GetConnectionHandle().GetParentConnectionId();
-
-		for (int32 ZoneId = 0; ZoneId < ScenarioAZoneCount; ++ZoneId)
-		{
-			if (!ReplicationSystem->IsValidGroup(DetailZoneGroups[ZoneId]))
-			{
-				continue;
-			}
-
-			const UE::Net::ENetFilterStatus DetailStatus = ShouldScenarioAConnectionReceiveDetailZone(OperatorRole, AssignedZoneId, ZoneId)
-				? UE::Net::ENetFilterStatus::Allow
-				: UE::Net::ENetFilterStatus::Disallow;
-			ReplicationSystem->SetGroupFilterStatus(DetailZoneGroups[ZoneId], ConnectionId, DetailStatus);
-		}
-
-		if (ReplicationSystem->IsValidGroup(SummaryGroup))
-		{
-			const UE::Net::ENetFilterStatus SummaryStatus = ShouldScenarioAConnectionReceiveSummary(OperatorRole)
-				? UE::Net::ENetFilterStatus::Allow
-				: UE::Net::ENetFilterStatus::Disallow;
-			ReplicationSystem->SetGroupFilterStatus(SummaryGroup, ConnectionId, SummaryStatus);
-		}
-
-		UE_LOG(LogIrisDemo, Log, TEXT("Scenario A role filtering applied: Mode=%s ConnectionId=%u Controller=%s Role=%s AssignedZone=%d Summary=%s DetailZones=[Z0:%s Z1:%s Z2:%s]"),
-			*GetIrisReplicationModeLabel(World),
-			ConnectionId,
-			*GetNameSafe(PlayerController),
-			RelayPlayerState ? *RelayPlayerState->GetOperatorRoleName() : TEXT("Unassigned"),
-			AssignedZoneId,
-			ShouldScenarioAConnectionReceiveSummary(OperatorRole) ? TEXT("Allow") : TEXT("Disallow"),
-			ShouldScenarioAConnectionReceiveDetailZone(OperatorRole, AssignedZoneId, 0) ? TEXT("Allow") : TEXT("Disallow"),
-			ShouldScenarioAConnectionReceiveDetailZone(OperatorRole, AssignedZoneId, 1) ? TEXT("Allow") : TEXT("Disallow"),
-			ShouldScenarioAConnectionReceiveDetailZone(OperatorRole, AssignedZoneId, 2) ? TEXT("Allow") : TEXT("Disallow"));
 	}
 }
 
@@ -1111,7 +1114,7 @@ void AIrisDemoGameMode::WriteScenarioARunMetadata() const
 	const UWorld* World = GetWorld();
 	const int32 SummaryActorTotal = IsValid(ScenarioAOperationalSummary) ? 1 : 0;
 	const int32 DetailActorTotal = ScenarioASensors.Num() + ScenarioADrones.Num() + ScenarioASupplyCrates.Num();
-	const FString RunId = MakeScenarioARunId(ScenarioARunId);
+	const FString RunId = ScenarioARunId;
 	const FString RunDirectory = GetScenarioARunDirectory(RunId);
 
 	IFileManager::Get().MakeDirectory(*RunDirectory, true);
@@ -1220,7 +1223,7 @@ void AIrisDemoGameMode::StartScenarioANetworkMetrics()
 	}
 
 	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A network metrics window started: RunId=%s StartDelay=%.2f Duration=%.2f Interval=%.2f"),
-		*MakeScenarioARunId(ScenarioARunId),
+		*ScenarioARunId,
 		ScenarioANetworkMetricsStartDelay,
 		ScenarioANetworkMetricsDuration,
 		ScenarioANetworkMetricsInterval);
@@ -1232,7 +1235,7 @@ void AIrisDemoGameMode::StopScenarioANetworkMetrics()
 	GetWorldTimerManager().ClearTimer(ScenarioANetworkMetricsStopTimerHandle);
 
 	UE_LOG(LogIrisDemo, Log, TEXT("Scenario A network metrics window stopped: RunId=%s Duration=%.2f"),
-		*MakeScenarioARunId(ScenarioARunId),
+		*ScenarioARunId,
 		ScenarioANetworkMetricsDuration);
 }
 
@@ -1245,7 +1248,7 @@ void AIrisDemoGameMode::LogScenarioANetworkMetricsSnapshot() const
 		return;
 	}
 
-	const FString RunId = MakeScenarioARunId(ScenarioARunId);
+	const FString RunId = ScenarioARunId;
 	const FString RunDirectory = GetScenarioARunDirectory(RunId);
 	IFileManager::Get().MakeDirectory(*RunDirectory, true);
 

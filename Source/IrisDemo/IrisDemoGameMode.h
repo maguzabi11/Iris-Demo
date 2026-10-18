@@ -23,7 +23,7 @@ class AIrisDemoGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 public:
-	
+
 	/** Constructor */
 	AIrisDemoGameMode();
 
@@ -31,18 +31,29 @@ protected:
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 
 	virtual void BeginPlay() override;
-	
+
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 
 private:
+	// --- 초기화·옵션 ---
 	void EnsureScenarioAPlayerStateClass();
 
-	ERelayOperatorRole GetNextScenarioARole();
+	void ApplyScenarioAOptions(const FString& Options);
 
-	int32 GetScenarioAZoneForRole(ERelayOperatorRole OperatorRole);
+	// --- 시뮬레이션: 액터 스폰·갱신·타이머 ---
+	void SpawnScenarioActors();
+
+	void StartScenarioTimers();
+
+	float GetScenarioAAutoExitDelay() const;
+
+	void TickScenarioSimulation();
+
+	template <typename TActor>
+	TActor* SpawnScenarioActor(TSubclassOf<TActor> ActorClass, const FVector& Location, const FRotator& Rotation);
 
 	void SpawnScenarioASensors();
 
@@ -64,12 +75,17 @@ private:
 
 	void UpdateScenarioCCargoStations();
 
+	// --- 역할 할당 ---
+	ERelayOperatorRole GetNextScenarioARole();
+
+	int32 GetScenarioAZoneForRole(ERelayOperatorRole OperatorRole);
+
+	// --- Iris 필터링 ---
 	void QueueScenarioAFilterRefresh();
 
 	void ApplyScenarioARoleBasedFiltering();
 
-	void ApplyScenarioAOptions(const FString& Options);
-
+	// --- 측정·기록 ---
 	void LogScenarioABaselineConfig() const;
 
 	void LogScenarioABaselineComplete() const;
@@ -84,10 +100,7 @@ private:
 
 	void RequestScenarioAAutoExit();
 
-	int32 NextScenarioARoleIndex = 0;
-
-	int32 NextScenarioAFieldAgentZoneId = 0;
-
+	// --- 설정 (UPROPERTY·실행 옵션) ---
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario A")
 	int32 ScenarioASeed = 1001;
 
@@ -152,6 +165,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Iris Relay|Scenario C", meta = (ClampMin = "0"))
 	int32 ScenarioCCargoItemCount = 1;
 
+	// --- 스폰된 액터 ---
 	UPROPERTY()
 	TArray<TObjectPtr<ARelaySensorActor>> ScenarioASensors;
 
@@ -167,7 +181,15 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<ARelayCargoStationActor>> ScenarioCCargoStations;
 
-	FTimerHandle ScenarioASensorUpdateTimerHandle;
+	// --- 런타임 상태 ---
+	int32 NextScenarioARoleIndex = 0;
+
+	int32 NextScenarioAFieldAgentZoneId = 0;
+
+	double ScenarioANetworkMetricsWindowStartTime = 0.0;
+
+	// --- 타이머 핸들 ---
+	FTimerHandle ScenarioSimulationTickTimerHandle;
 
 	FTimerHandle ScenarioABaselineCompleteTimerHandle;
 
@@ -180,6 +202,4 @@ private:
 	FTimerHandle ScenarioANetworkMetricsStopTimerHandle;
 
 	FTimerHandle ScenarioAAutoExitTimerHandle;
-
-	double ScenarioANetworkMetricsWindowStartTime = 0.0;
 };
